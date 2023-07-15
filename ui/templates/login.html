@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock title %}
+{% block head %}
+{{ super() }}
+<link type="text/css" rel="stylesheet" href="/static/styles/register.css">
+{% endblock head %}
+{% block content %}
+<h1>worker.coop</h1>
+<p class="important">
+    Welcome!
+</p>
+<section class="register">
+    <h2>Register</h2>
+    <input class="username" type="text" name="username" placeholder="username">
+    <input class="password hidden" type="password" name="password" placeholder="password">
+    <button>Register</button>
+</section>
+<section class="hidden login">
+    <h2>Login</h2>
+    <form class="login" hx-ext="json-enc" hx-target="section.login">
+</section>
+<script type="text/javascript" src="/static/scripts/register.js"></script>
+{% endblock content %}

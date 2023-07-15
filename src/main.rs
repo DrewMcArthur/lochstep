@@ -9,7 +9,7 @@ use simple_logger::SimpleLogger;
 use state::AppState;
 use tower_http::services::ServeDir;
 
-use models::db::Database;
+use models::{db::Database, Models};
 
 mod controllers;
 mod models;
@@ -46,17 +46,26 @@ async fn routes() -> Router {
         .with_secure(true);
 
     let state = AppState::new();
+    let models = Models::new(db);
 
     Router::new()
         .route("/", get(controllers::index))
         .route(
-            "/auth/begin-register",
-            post(controllers::auth::begin_register),
+            "/auth/passkey/registration/options",
+            post(controllers::auth::get_passkey_registration_options),
         )
+        .route(
+            "/auth/passkey/registration/create",
+            post(controllers::auth::create_passkey_registration),
+        )
+        // .route(
+        //     "/auth/password/registration/create",
+        //     post(controllers::auth::create_password_registration),
+        // )
         .nest_service("/static", ServeDir::new("ui/static"))
-        .layer(db)
         .layer(session_layer)
         .layer(Extension(state))
+        .layer(Extension(models))
 }
 
 async fn start_server(app: Router) -> () {

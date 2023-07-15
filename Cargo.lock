@@ -488,6 +488,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e496a50fda8aacccc86d7529e2c1e0892dbd0f898a6b5645b5561b89c3210efa"
 
 [[package]]
+name = "coworker"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "axum-sessions",
+ "hyper",
+ "lazy_static",
+ "log",
+ "rand",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "simple_logger",
+ "tera",
+ "tokio",
+ "tokio-rusqlite",
+ "tower-http",
+ "uuid",
+ "webauthn-rs",
+]
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2151,28 +2173,6 @@ checksum = "d023da39d1fde5a8a3fe1f3e01ca9632ada0a63e9797de55a879d6e2236277be"
 dependencies = [
  "getrandom",
  "serde",
-]
-
-[[package]]
-name = "v3"
-version = "0.1.0"
-dependencies = [
- "axum",
- "axum-sessions",
- "hyper",
- "lazy_static",
- "log",
- "rand",
- "rusqlite",
- "serde",
- "serde_json",
- "simple_logger",
- "tera",
- "tokio",
- "tokio-rusqlite",
- "tower-http",
- "uuid",
- "webauthn-rs",
 ]
 
 [[package]]

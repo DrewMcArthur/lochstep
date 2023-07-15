@@ -3,12 +3,13 @@ use uuid::Uuid;
 
 use super::db::Database;
 
-pub struct Users<'db> {
-    db: &'db Database,
+#[derive(Clone)]
+pub struct Users {
+    db: Database,
 }
 
-impl<'db> Users<'db> {
-    pub fn new(db: &'db Database) -> Self {
+impl Users {
+    pub fn new(db: Database) -> Self {
         Self { db }
     }
 

@@ -1,13 +1,15 @@
-use axum::{response::Html, Extension, Json};
+use axum::{debug_handler, Extension, Json};
 use axum_sessions::extractors::WritableSession;
+use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use webauthn_rs::prelude::{CreationChallengeResponse, WebauthnError};
+use webauthn_rs::prelude::{
+    CreationChallengeResponse, PasskeyRegistration, RegisterPublicKeyCredential, WebauthnError,
+};
 
 use crate::{
-    models::{db::Database, passwords::Passwords, users::Users},
+    models::{db::Database, users::Users, Models},
     state::AppState,
-    views,
 };
 
 #[derive(Serialize, Deserialize)]
@@ -17,77 +19,44 @@ pub struct Login {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct BeginRegistrationResponse {
+pub struct PasskeyRegistrationOptionsRequest {
+    username: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PasskeyRegistrationOptions {
     id: Uuid,
     username: String,
-    authenticated: bool,
-    registration_result: Option<CreationChallengeResponse>,
+    registration_result: CreationChallengeResponse,
 }
 
-pub async fn begin_register(
+pub async fn get_passkey_registration_options(
     Extension(app): Extension<AppState>,
-    Extension(db): Extension<Database>,
+    Extension(models): Extension<Models>,
     mut session: WritableSession,
-    Json(login): Json<Login>,
-) -> Result<Html<String>, String> {
-    let users = Users::new(&db);
-    let userid = users
-        .create_user(&login.username)
+    Json(req): Json<PasskeyRegistrationOptionsRequest>,
+) -> Json<CreationChallengeResponse> {
+    let userid = models
+        .users
+        .create_user(&req.username)
         .await
         .expect("error creating username");
-    if let Some(pw) = login.password {
-        if pw.len() > 0 {
-            return Err("not supported".to_string());
-            // register_with_password(&db, &userid, login.username, pw)
-            //     .await
-            //     .unwrap();
-        }
-    }
 
-    let challenge = register_with_passkey(&app, &db, &mut session, &userid, &login.username)
-        .await
-        .map_err(|e| e.to_string())
-        .unwrap();
+    let challenge =
+        generate_passkey_registration_challenge(&app, &mut session, &userid, &req.username)
+            .await
+            .map_err(|e| e.to_string())
+            .unwrap();
 
-    Ok(views::complete_registration_challenge(
-        &app.templates,
-        challenge,
-    ))
+    Json(challenge)
 }
 
-// pub async fn finish_register(
-//     Extension(db): Extension<Database>,
-//     Json(registration): Json<RegistrationRequest>,
-// ) -> Json<CompletedRegistrationResponse> {
-//     WEBAUTHN.finish_passkey_registration()
-// }
-
-async fn register_with_password(
-    db: &Database,
-    userid: &Uuid,
-    username: String,
-    password: String,
-) -> Result<Json<BeginRegistrationResponse>, rusqlite::Error> {
-    let passwords = Passwords::new(db);
-    passwords
-        .update_user_password(userid.clone(), password)
-        .await
-        .unwrap();
-    Ok(Json(BeginRegistrationResponse {
-        id: userid.clone(),
-        username: username,
-        authenticated: true,
-        registration_result: None,
-    }))
-}
-
-async fn register_with_passkey(
+async fn generate_passkey_registration_challenge(
     app: &AppState,
-    _db: &Database,
     session: &mut WritableSession,
     userid: &Uuid,
     username: &str,
-) -> Result<BeginRegistrationResponse, WebauthnError> {
+) -> Result<CreationChallengeResponse, WebauthnError> {
     // log::info!("Start register");
     // We get the username from the URL, but you could get this via form submission or
     // some other process. In some parts of Webauthn, you could also use this as a "display name"
@@ -147,11 +116,66 @@ async fn register_with_passkey(
         }
     };
 
-    // TODO: instead of returning JSON, return the script that the browser will execute.
-    Ok(BeginRegistrationResponse {
-        id: userid.clone(),
-        username: username.to_string(),
-        authenticated: false,
-        registration_result: Some(res),
-    })
+    Ok(res)
+
+    //     PasskeyRegistrationOptions {
+    //     id: userid.clone(),
+    //     username: username.to_string(),
+    //     registration_result: res,
+    // })
 }
+
+#[debug_handler]
+pub async fn create_passkey_registration(
+    Extension(app): Extension<AppState>,
+    Extension(models): Extension<Models>,
+    mut session: WritableSession,
+    Json(reg): Json<RegisterPublicKeyCredential>,
+) -> StatusCode {
+    let (username, user_unique_id, reg_state): (String, Uuid, PasskeyRegistration) = session
+        .get("reg_state")
+        .ok_or(WebauthnError::CredentialPersistenceError)
+        .unwrap(); //Corrupt Session
+
+    session.remove("reg_state");
+
+    let res = match app.webauthn.finish_passkey_registration(&reg, &reg_state) {
+        Ok(sk) => {
+            //TODO: This is where we would store the credential in a db, or persist them in some other way.
+            // users_guard
+            //     .keys
+            //     .entry(user_unique_id)
+            //     .and_modify(|keys| keys.push(sk.clone()))
+            //     .or_insert_with(|| vec![sk.clone()]);
+
+            // save key to db
+            models.users;
+
+            log::info!("saved new key for user {:?}", username);
+            StatusCode::OK
+        }
+        Err(e) => {
+            log::debug!("challenge_register -> {:?}", e);
+            StatusCode::BAD_REQUEST
+        }
+    };
+
+    res
+}
+
+// async fn register_with_password(
+//     db: &Database,
+//     userid: &Uuid,
+//     username: String,
+//     password: String,
+// ) -> Result<Json<PasskeyRegistrationOptions>, rusqlite::Error> {
+//     let passwords = Passwords::new(db);
+//     passwords
+//         .update_user_password(userid.clone(), password)
+//         .await
+//         .unwrap();
+//     Ok(Json( {
+//         id: userid.clone(),
+//         username: username,
+//     }))
+// }

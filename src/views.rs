@@ -1,22 +1,27 @@
 use axum::response::Html;
-use serde::{Serialize, Serializer};
 use tera::{Context, Tera};
 
-use crate::controllers::auth::BeginRegistrationResponse;
+use crate::controllers::auth::PasskeyRegistrationOptions;
 
-pub fn render_homepage(templates: Tera, logged_in: &bool) -> Html<String> {
-    let mut ctx = Context::new();
-    ctx.insert("authenticated", logged_in);
+pub fn homepage(templates: Tera) -> Html<String> {
     Html(
         templates
-            .render("homepage.html", &ctx)
+            .render("homepage.html", &Context::new())
             .expect("error rendering homepage"),
+    )
+}
+
+pub fn login(templates: Tera) -> Html<String> {
+    Html(
+        templates
+            .render("login.html", &Context::new())
+            .expect("error rendering login page"),
     )
 }
 
 pub fn complete_registration_challenge(
     templates: &Tera,
-    challenge: BeginRegistrationResponse,
+    challenge: PasskeyRegistrationOptions,
 ) -> Html<String> {
     let serialized_challenge = serde_json::to_string(&challenge).unwrap();
     let mut ctx = Context::new();

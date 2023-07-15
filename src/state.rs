@@ -3,6 +3,8 @@ use std::sync::Arc;
 use tera::Tera;
 use webauthn_rs::{prelude::Url, Webauthn, WebauthnBuilder};
 
+use crate::models::{db::Database, users::Users};
+
 #[derive(Clone)]
 pub struct AppState {
     pub webauthn: Arc<Webauthn>,
