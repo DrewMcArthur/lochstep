@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    {% block head %}
+    <meta charset="UTF-8">
+    <title>{% block title %}{% endblock title %} | worker.coop v3</title>
+
+    <!-- htmx -->
+    <script src="https://unpkg.com/htmx.org@1.9.2"
+        integrity="sha384-L6OqL9pRWyyFU3+/bjdSri+iIphTN/bvYyM37tICVyOJkWZLpP2vGn6VUEXgzg6h"
+        crossorigin="anonymous"></script>
+    <!-- htmx extension: json-enc -->
+    <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="/static/styles/main.css">
+    {% endblock head %}
+</head>
+
+<body>
+    <div id="content">{% block content %}{% endblock content %}</div>
+</body>
+
+</html>
