@@ -9,6 +9,7 @@ pub async fn index(
     Extension(app): Extension<AppState>,
     mut session: WritableSession,
 ) -> Html<String> {
+    // let info = session.get("reg_state").unwrap();
     let logged_in = false; // TODO
     if logged_in {
         views::homepage(app.templates)

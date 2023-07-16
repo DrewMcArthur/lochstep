@@ -6,13 +6,15 @@ use webauthn_rs::{prelude::Url, Webauthn, WebauthnBuilder};
 pub struct AppState {
     pub webauthn: Arc<Webauthn>,
     pub templates: Tera,
+    pub db: Arc<libsql_client::Client>,
 }
 
 impl AppState {
-    pub fn new() -> Self {
+    pub fn new(db_client: libsql_client::Client) -> Self {
         AppState {
             webauthn: Arc::new(init_webauthn()),
             templates: init_templates(),
+            db: Arc::new(db_client),
         }
     }
 }

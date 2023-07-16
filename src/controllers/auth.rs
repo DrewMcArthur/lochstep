@@ -30,11 +30,10 @@ pub struct PasskeyRegistrationOptions {
 
 pub async fn get_passkey_registration_options(
     Extension(app): Extension<AppState>,
-    Extension(db): Extension<PgPool>,
     mut session: WritableSession,
     Json(req): Json<PasskeyRegistrationOptionsRequest>,
 ) -> Json<CreationChallengeResponse> {
-    let userid = models::users::create_user(&db, &req.username)
+    let userid = models::users::create_user(&app.db, &req.username)
         .await
         .expect("error creating username");
 
@@ -42,7 +41,7 @@ pub async fn get_passkey_registration_options(
         generate_passkey_registration_challenge(&app, &mut session, &userid, &req.username)
             .await
             .map_err(|e| e.to_string())
-            .unwrap();
+            .expect("error generating passkey challenge");
 
     Json(challenge)
 }

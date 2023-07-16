@@ -1,11 +1,11 @@
 CREATE TABLE IF NOT EXISTS users (
-  id UUID PRIMARY KEY,
+  id TEXT PRIMARY KEY,
   username TEXT,
   pw TEXT
 );
 
 CREATE TABLE IF NOT EXISTS keys (
-  id UUID PRIMARY KEY,
-  userid UUID,
-  key JSONB
+  id INT PRIMARY KEY,
+  userid TEXT,
+  key TEXT
 );
