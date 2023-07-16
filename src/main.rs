@@ -22,7 +22,7 @@ static DB_LOCATION: &'static str = "src/models/db/db.sqlite";
 
 #[shuttle_runtime::main]
 async fn init() -> ShuttleAxum {
-    init_logger();
+    // init_logger();
     let router = routes().await;
     Ok(router.into())
     // start_server(router).await
