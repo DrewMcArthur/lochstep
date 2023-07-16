@@ -1,3 +1,3 @@
 update users 
-set password = :password 
-where id = :id;
+set password = $2 
+where id = $1;

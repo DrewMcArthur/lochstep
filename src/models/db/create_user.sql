@@ -1,2 +1,2 @@
 INSERT INTO users (id, username)
-VALUES (:id, :username);
+VALUES ($1, $2);
