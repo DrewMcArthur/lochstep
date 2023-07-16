@@ -1,32 +1,16 @@
-use rusqlite::params;
+use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::DB_LOCATION;
+pub async fn create_user(pool: &PgPool, username: &str) -> Result<Uuid, sqlx::Error> {
+    let id = Uuid::new_v4();
+    let username = username.to_string();
 
-use super::db::Database;
+    sqlx::query(include_str!("db/create_user.sql"))
+        .bind(id)
+        .bind(username)
+        .execute(pool)
+        .await
+        .unwrap();
 
-#[derive(Clone)]
-pub struct Users {
-    db: Database,
-}
-
-impl Users {
-    pub async fn new() -> Self {
-        Self {
-            db: Database::new(DB_LOCATION).await.unwrap(),
-        }
-    }
-
-    pub async fn create_user(&self, username: &str) -> Result<Uuid, rusqlite::Error> {
-        let id = Uuid::new_v4();
-        let username = username.to_string();
-        self.db
-            .connection
-            .call(move |conn| {
-                conn.execute(include_str!("db/create_user.sql"), params![id, username])
-            })
-            .await
-            .expect("error executing create_users statement");
-        Ok(id)
-    }
+    Ok(id)
 }

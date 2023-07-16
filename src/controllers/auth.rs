@@ -2,12 +2,13 @@ use axum::{debug_handler, Extension, Json};
 use axum_sessions::extractors::WritableSession;
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
 use uuid::Uuid;
 use webauthn_rs::prelude::{
     CreationChallengeResponse, PasskeyRegistration, RegisterPublicKeyCredential, WebauthnError,
 };
 
-use crate::{models::Models, state::AppState};
+use crate::{models, state::AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct Login {
@@ -29,13 +30,11 @@ pub struct PasskeyRegistrationOptions {
 
 pub async fn get_passkey_registration_options(
     Extension(app): Extension<AppState>,
-    Extension(models): Extension<Models>,
+    Extension(db): Extension<PgPool>,
     mut session: WritableSession,
     Json(req): Json<PasskeyRegistrationOptionsRequest>,
 ) -> Json<CreationChallengeResponse> {
-    let userid = models
-        .users
-        .create_user(&req.username)
+    let userid = models::users::create_user(&db, &req.username)
         .await
         .expect("error creating username");
 
@@ -117,7 +116,7 @@ async fn generate_passkey_registration_challenge(
 #[debug_handler]
 pub async fn create_passkey_registration(
     Extension(app): Extension<AppState>,
-    Extension(models): Extension<Models>,
+    Extension(db): Extension<PgPool>,
     mut session: WritableSession,
     Json(reg): Json<RegisterPublicKeyCredential>,
 ) -> (StatusCode, String) {
@@ -145,7 +144,7 @@ pub async fn create_passkey_registration(
             //     .or_insert_with(|| vec![sk.clone()]);
 
             // save key to db
-            if let Err(e) = models.keys.add_key(user_unique_id, sk).await {
+            if let Err(e) = models::keys::add_key(&db, user_unique_id, sk).await {
                 return (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     format!("error saving passkey to db: {}", e),
