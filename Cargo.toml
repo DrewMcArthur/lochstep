@@ -19,6 +19,7 @@ shuttle-axum = "0.21.0"
 shuttle-runtime = "0.21.0"
 shuttle-service = "0.21.0"
 shuttle-shared-db = {version = "0.21.0", features = ["postgres"]}
+shuttle-static-folder = "0.21.0"
 simple_logger = "4.2.0"
 sqlx = {version = "0.6.2", features = ["postgres", "runtime-tokio-native-tls", "macros", "uuid"]}
 tera = "1.19.0"

@@ -7,6 +7,7 @@ use rand::prelude::*;
 use shuttle_axum::ShuttleAxum;
 use sqlx::PgPool;
 use state::AppState;
+use std::path::PathBuf;
 use tower_http::services::ServeDir;
 
 mod controllers;
@@ -15,7 +16,10 @@ mod state;
 mod views;
 
 #[shuttle_runtime::main]
-async fn init(#[shuttle_shared_db::Postgres] pool: PgPool) -> ShuttleAxum {
+async fn init(
+    #[shuttle_shared_db::Postgres] pool: PgPool,
+    #[shuttle_static_folder::StaticFolder(folder = "ui/static")] static_dir: PathBuf,
+) -> ShuttleAxum {
     log::info!("initializing DB");
     sqlx::migrate!("src/models/db/migrations")
         .run(&pool)
@@ -49,7 +53,7 @@ async fn init(#[shuttle_shared_db::Postgres] pool: PgPool) -> ShuttleAxum {
         //     "/auth/password/registration/create",
         //     post(controllers::auth::create_password_registration),
         // )
-        .nest_service("/static", ServeDir::new("ui/static"))
+        .nest_service("/static", ServeDir::new(static_dir))
         .layer(session_layer)
         .layer(Extension(state))
         .layer(Extension(pool));
