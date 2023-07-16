@@ -1,0 +1,1 @@
+insert into keys (userid, pubkey) VALUES (:uuid, :pubkey);

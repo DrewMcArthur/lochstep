@@ -1,4 +1,3 @@
-use axum::Extension;
 use rusqlite::params;
 use tokio_rusqlite::Connection;
 
@@ -8,13 +7,13 @@ pub struct Database {
 }
 
 impl Database {
-    pub async fn new(path: &str) -> Result<Extension<Self>, tokio_rusqlite::Error> {
+    pub async fn new(path: &str) -> Result<Self, tokio_rusqlite::Error> {
         let connection = Connection::open(path)
             .await
             .expect("error opening sqlite db connection");
         let db = Database { connection };
         db.init().await.expect("error initializing db");
-        Ok(Extension(db))
+        Ok(db)
     }
 
     async fn init(&self) -> Result<(), tokio_rusqlite::Error> {

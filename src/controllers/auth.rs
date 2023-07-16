@@ -7,10 +7,7 @@ use webauthn_rs::prelude::{
     CreationChallengeResponse, PasskeyRegistration, RegisterPublicKeyCredential, WebauthnError,
 };
 
-use crate::{
-    models::{db::Database, users::Users, Models},
-    state::AppState,
-};
+use crate::{models::Models, state::AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct Login {
@@ -93,36 +90,28 @@ async fn generate_passkey_registration_challenge(
     //         .map(|keys| keys.iter().map(|sk| sk.cred_id().clone()).collect())
     // };
 
-    let res = match app.webauthn.start_passkey_registration(
-        userid.clone(),
-        &username,
-        &username,
-        None,
-        // exclude_credentials,
-    ) {
-        Ok((ccr, reg_state)) => {
-            // Note that due to the session store in use being a server side memory store, this is
-            // safe to store the reg_state into the session since it is not client controlled and
-            // not open to replay attacks. If this was a cookie store, this would be UNSAFE.
-            session
-                .insert("reg_state", (username, userid, reg_state))
-                .expect("Failed to insert");
-            log::info!("Registration Successful!");
-            ccr
-        }
-        Err(e) => {
-            log::debug!("challenge_register -> {:?}", e);
-            return Err(e);
-        }
-    };
+    let res =
+        match app
+            .webauthn
+            .start_passkey_registration(userid.clone(), &username, &username, None)
+        {
+            Ok((ccr, reg_state)) => {
+                // Note that due to the session store in use being a server side memory store, this is
+                // safe to store the reg_state into the session since it is not client controlled and
+                // not open to replay attacks. If this was a cookie store, this would be UNSAFE.
+                session
+                    .insert("reg_state", (username, userid, reg_state))
+                    .expect("Failed to insert");
+                log::info!("Registration Successful!");
+                ccr
+            }
+            Err(e) => {
+                log::debug!("challenge_register -> {:?}", e);
+                return Err(e);
+            }
+        };
 
     Ok(res)
-
-    //     PasskeyRegistrationOptions {
-    //     id: userid.clone(),
-    //     username: username.to_string(),
-    //     registration_result: res,
-    // })
 }
 
 #[debug_handler]
@@ -131,11 +120,18 @@ pub async fn create_passkey_registration(
     Extension(models): Extension<Models>,
     mut session: WritableSession,
     Json(reg): Json<RegisterPublicKeyCredential>,
-) -> StatusCode {
-    let (username, user_unique_id, reg_state): (String, Uuid, PasskeyRegistration) = session
+) -> (StatusCode, String) {
+    let session_res = session
         .get("reg_state")
-        .ok_or(WebauthnError::CredentialPersistenceError)
-        .unwrap(); //Corrupt Session
+        .ok_or(WebauthnError::CredentialPersistenceError);
+
+    if let Err(e) = session_res {
+        log::debug!("challenge_register -> {:?}", e);
+        return (StatusCode::BAD_REQUEST, e.to_string());
+    }
+
+    let (username, user_unique_id, reg_state): (String, Uuid, PasskeyRegistration) =
+        session_res.unwrap();
 
     session.remove("reg_state");
 
@@ -149,7 +145,12 @@ pub async fn create_passkey_registration(
             //     .or_insert_with(|| vec![sk.clone()]);
 
             // save key to db
-            models.users;
+            if let Err(e) = models.keys.add_key(user_unique_id, sk).await {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("error saving passkey to db: {}", e),
+                );
+            };
 
             log::info!("saved new key for user {:?}", username);
             StatusCode::OK
@@ -160,7 +161,7 @@ pub async fn create_passkey_registration(
         }
     };
 
-    res
+    (res, "OK".to_string())
 }
 
 // async fn register_with_password(

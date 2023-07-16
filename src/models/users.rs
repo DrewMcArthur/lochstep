@@ -1,6 +1,8 @@
 use rusqlite::params;
 use uuid::Uuid;
 
+use crate::DB_LOCATION;
+
 use super::db::Database;
 
 #[derive(Clone)]
@@ -9,8 +11,10 @@ pub struct Users {
 }
 
 impl Users {
-    pub fn new(db: Database) -> Self {
-        Self { db }
+    pub async fn new() -> Self {
+        Self {
+            db: Database::new(DB_LOCATION).await.unwrap(),
+        }
     }
 
     pub async fn create_user(&self, username: &str) -> Result<Uuid, rusqlite::Error> {

@@ -37,27 +37,23 @@ const registerPassword = async () => {
 
 const registerPasskey = async () => {
   await getPasskeyRegistrationOptions()
-    .then((opts) => {
-      console.log("got passkey registration options: " + JSON.stringify(opts));
-      return opts;
-    })
+    .then((res) => res.json())
     .then((opts) => generateCredentials(opts))
     .then((creds) => createPasskeyRegistration(creds))
     .catch((e) => console.error("error creating passkey registration: " + e));
 };
 
 const getPasskeyRegistrationOptions = async () => {
-  return (
-    await fetch("/auth/passkey/registration/options", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: htmx.find("input.username").value,
-      }),
-    })
-  ).json();
+  return await fetch("/auth/passkey/registration/options", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      username: htmx.find("input.username").value,
+    }),
+  });
 };
 
 const generateCredentials = async (opts) => {
@@ -73,6 +69,7 @@ const generateCredentials = async (opts) => {
 const createPasskeyRegistration = async (credential) => {
   return await fetch("/auth/passkey/registration/create", {
     method: "POST",
+    credentials: "same-origin",
     headers: {
       "Content-Type": "application/json",
     },
