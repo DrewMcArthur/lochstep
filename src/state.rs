@@ -35,7 +35,7 @@ fn init_webauthn() -> Webauthn {
 }
 
 fn init_templates() -> Tera {
-    match Tera::new("ui/templates/**/*.html") {
+    match Tera::new("src/ui/templates/**/*.html") {
         Ok(t) => t,
         Err(e) => {
             println!("Parsing error(s): {}", e);

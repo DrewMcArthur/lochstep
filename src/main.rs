@@ -18,7 +18,7 @@ mod views;
 #[shuttle_runtime::main]
 async fn init(
     #[shuttle_shared_db::Postgres] pool: PgPool,
-    #[shuttle_static_folder::StaticFolder(folder = "ui/static")] static_dir: PathBuf,
+    #[shuttle_static_folder::StaticFolder(folder = "src/ui/static")] static_dir: PathBuf,
 ) -> ShuttleAxum {
     log::info!("initializing DB");
     sqlx::migrate!("src/models/db/migrations")
