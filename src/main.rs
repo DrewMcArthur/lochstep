@@ -16,6 +16,13 @@ mod views;
 
 #[shuttle_runtime::main]
 async fn init(#[shuttle_shared_db::Postgres] pool: PgPool) -> ShuttleAxum {
+    log::info!("initializing DB");
+    sqlx::migrate!("src/models/db/migrations")
+        .run(&pool)
+        .await
+        .expect("Migrations failed :(");
+
+    log::info!("initializing session memorystore");
     let store = MemoryStore::new();
     let secret1 = thread_rng().gen::<[u8; 32]>(); // MUST be at least 64 bytes!
     let secret2 = thread_rng().gen::<[u8; 32]>(); // MUST be at least 64 bytes!
@@ -25,6 +32,7 @@ async fn init(#[shuttle_shared_db::Postgres] pool: PgPool) -> ShuttleAxum {
         .with_same_site_policy(SameSite::Lax)
         .with_secure(true);
 
+    log::info!("intializing appstate and router");
     let state = AppState::new();
 
     let router = Router::new()
@@ -46,5 +54,6 @@ async fn init(#[shuttle_shared_db::Postgres] pool: PgPool) -> ShuttleAxum {
         .layer(Extension(state))
         .layer(Extension(pool));
 
+    log::info!("done initializing.");
     Ok(router.into())
 }
