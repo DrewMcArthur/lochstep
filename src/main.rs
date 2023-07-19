@@ -23,6 +23,7 @@ async fn init(
     #[shuttle_secrets::Secrets] secrets: SecretStore,
     #[shuttle_turso::Turso(
         addr = "libsql://choice-shredder-drewmcarthur.turso.io",
+        local_addr = "libsql://choice-shredder-drewmcarthur.turso.io",
         token = "{secrets.DB_TURSO_TOKEN}"
     )]
     turso: libsql_client::Client,

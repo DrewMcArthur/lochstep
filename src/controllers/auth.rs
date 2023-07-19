@@ -16,12 +16,6 @@ pub struct SessionRegistrationState {
     reg_state: PasskeyRegistration,
 }
 
-impl SessionRegistrationState {
-    pub fn is_logged_in(&self) -> bool {
-        true
-    }
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct Login {
     username: String,
