@@ -2,22 +2,21 @@ use axum::{
     routing::{get, post},
     Extension, Router,
 };
-use axum_sessions::{
-    async_session::{self, MemoryStore},
-    SameSite, SessionLayer,
-};
+use axum_sessions::{async_session::MemoryStore, SameSite, SessionLayer};
 use rand::prelude::*;
 use shuttle_axum::ShuttleAxum;
 use shuttle_service::SecretStore;
-use sqlx::PgPool;
 use state::AppState;
 use std::path::PathBuf;
+use tera::Tera;
 use tower_http::services::ServeDir;
 
 mod controllers;
 mod models;
 mod state;
 mod views;
+
+type Error = Box<dyn std::error::Error>;
 
 #[shuttle_runtime::main]
 async fn init(
@@ -27,13 +26,14 @@ async fn init(
         token = "{secrets.DB_TURSO_TOKEN}"
     )]
     turso: libsql_client::Client,
-    // #[shuttle_shared_db::Postgres] pool: PgPool,
-    #[shuttle_static_folder::StaticFolder(folder = "src/ui/static")] static_dir: PathBuf,
+    #[shuttle_static_folder::StaticFolder(folder = "src/ui/")] ui_dir: PathBuf,
 ) -> ShuttleAxum {
     init_db(&turso).await.expect("DB initialization failed :(");
 
     log::info!("intializing appstate and router");
-    let state = AppState::new(turso);
+    let templates = init_templates(&ui_dir);
+    let static_dir = ui_dir.join("static");
+    let state = AppState::new(turso, templates);
 
     let router = Router::new()
         .route("/", get(controllers::index))
@@ -57,7 +57,7 @@ async fn init(
     Ok(router.into())
 }
 
-async fn init_db(client: &libsql_client::Client) -> Result<(), async_session::Error> {
+async fn init_db(client: &libsql_client::Client) -> Result<(), Error> {
     let create_users_table = "CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
             username TEXT,
@@ -84,4 +84,10 @@ fn init_session_layer() -> SessionLayer<MemoryStore> {
         .with_cookie_name("webauthnrs")
         .with_same_site_policy(SameSite::Lax)
         .with_secure(true)
+}
+
+fn init_templates(ui_dir: &PathBuf) -> Tera {
+    let templates_dir = ui_dir.join("templates");
+    let templates_pattern = format!("{}/**/*.html", templates_dir.display());
+    Tera::new(templates_pattern.as_str()).expect("Error loading templates directory")
 }

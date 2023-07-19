@@ -10,10 +10,10 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(db_client: libsql_client::Client) -> Self {
+    pub fn new(db_client: libsql_client::Client, templates: Tera) -> Self {
         AppState {
             webauthn: Arc::new(init_webauthn()),
-            templates: init_templates(),
+            templates,
             db: Arc::new(db_client),
         }
     }
@@ -34,14 +34,4 @@ fn init_webauthn() -> Webauthn {
 
     // Consume the builder and create our webauthn instance.
     builder.build().expect("Invalid configuration")
-}
-
-fn init_templates() -> Tera {
-    match Tera::new("src/ui/templates/**/*.html") {
-        Ok(t) => t,
-        Err(e) => {
-            println!("Parsing error(s): {}", e);
-            ::std::process::exit(1);
-        }
-    }
 }
