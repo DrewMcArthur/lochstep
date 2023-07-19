@@ -67,6 +67,7 @@ async fn init_router(turso: libsql_client::Client, ui_dir: &PathBuf) -> Result<R
 }
 
 async fn init_db(client: &libsql_client::Client) -> Result<(), Error> {
+    tracing::info!("initializing db");
     let create_users_table = "CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
             username TEXT,
