@@ -8,9 +8,9 @@ use self::auth::SessionRegistrationState;
 pub mod auth;
 
 pub async fn index(Extension(app): Extension<AppState>, session: WritableSession) -> Html<String> {
-    log::debug!("handling request: 'GET /'");
+    tracing::debug!("handling request: 'GET /'");
     let reg_state: Option<SessionRegistrationState> = session.get("reg_state");
-    log::debug!("got reg_state: {:?}", reg_state);
+    tracing::debug!("got reg_state: {:?}", reg_state);
     match reg_state {
         Some(_) => views::homepage(app.templates),
         None => views::login(app.templates),

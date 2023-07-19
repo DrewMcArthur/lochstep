@@ -31,7 +31,7 @@ async fn init(
 ) -> ShuttleAxum {
     init_db(&turso).await.expect("DB initialization failed :(");
 
-    log::info!("intializing appstate and router");
+    tracing::info!("intializing appstate and router");
     let templates = init_templates(&ui_dir);
     let static_dir = ui_dir.join("static");
     let state = AppState::new(turso, templates);
@@ -54,7 +54,7 @@ async fn init(
         .layer(init_session_layer())
         .layer(Extension(state));
 
-    log::info!("done initializing.");
+    tracing::info!("done initializing.");
     Ok(router.into())
 }
 
@@ -83,7 +83,7 @@ async fn init_db(client: &libsql_client::Client) -> Result<(), Error> {
 }
 
 fn init_session_layer() -> SessionLayer<MemoryStore> {
-    log::info!("initializing session memorystore");
+    tracing::info!("initializing session memorystore");
     let store = MemoryStore::new();
     let secret1 = thread_rng().gen::<[u8; 32]>(); // MUST be at least 64 bytes!
     let secret2 = thread_rng().gen::<[u8; 32]>(); // MUST be at least 64 bytes!
