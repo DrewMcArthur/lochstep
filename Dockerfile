@@ -20,14 +20,14 @@ RUN rm ./target/release/deps/lochstep*
 RUN cargo build --release
 
 # our final base
-FROM rust:1.71-slim
+# FROM rust:1.71-slim
 
 # install sqlite lib
 RUN apt-get update && apt-get install sqlite3 -y
 
 # copy the build artifact from the build stage
-COPY --from=build /lochstep/target/release/lochstep .
-COPY --from=build /lochstep/src/ui /src/ui
+# COPY --from=build /lochstep/target/release/lochstep .
+# COPY --from=build /lochstep/src/ui src/ui
 
 # set the startup command to run your binary
-CMD ["./lochstep"]
+CMD ["./target/release/lochstep"]

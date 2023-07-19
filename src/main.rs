@@ -3,7 +3,7 @@ use axum::{
     Extension, Router,
 };
 use axum_sessions::{async_session::MemoryStore, SameSite, SessionLayer};
-use log::info;
+use log::{debug, info};
 use rand::prelude::*;
 use simple_logger::SimpleLogger;
 use state::AppState;
@@ -109,8 +109,15 @@ fn init_templates(ui_dir: &PathBuf) -> Result<Tera, Error> {
     info!("checking if src/ui exists: {}", ui_dir.exists());
     let templates_dir = ui_dir.join("templates");
     let templates_pattern = format!("{}/**/*.html", templates_dir.display());
-    let templates =
-        Tera::new(templates_pattern.as_str()).expect("Error loading templates directory");
+    for file in glob::glob(&templates_pattern).unwrap() {
+        let file = file.unwrap();
+        debug!("{:?}: {}", file, file.exists());
+    }
+    let mut templates =
+        Tera::parse(templates_pattern.as_str()).expect("Error parsing templates directory");
+    templates
+        .build_inheritance_chains()
+        .expect("Error building tera inheritance chains");
     info!("done initializing templates.");
     Ok(templates)
 }
@@ -129,10 +136,11 @@ async fn main() {
 
 async fn init_db_client() -> Result<libsql_client::Client, Error> {
     let db_url = "libsql://choice-shredder-drewmcarthur.turso.io";
-    let token = env::var("DB_TURSO_TOKEN").expect("error loading env.DB_TURSO_TOKEN");
+    // let token = env::var("DB_TURSO_TOKEN").expect("error loading env.DB_TURSO_TOKEN");
     let config = libsql_client::Config {
         url: url::Url::parse(db_url).expect("error parsing turso db url"),
-        auth_token: Some(token),
+        // auth_token: Some(token),
+        auth_token: None,
     };
     let client = libsql_client::Client::from_config(config).await.unwrap();
     Ok(client)
