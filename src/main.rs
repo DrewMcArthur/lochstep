@@ -36,11 +36,10 @@ type Error = Box<dyn std::error::Error>;
 // }
 
 async fn init_router(turso: libsql_client::Client, ui_dir: &PathBuf) -> Result<Router, Error> {
-    init_db(&turso).await.expect("DB initialization failed :(");
-
     info!("intializing appstate");
     let templates = init_templates(&ui_dir).unwrap();
     let static_dir = ui_dir.join("static");
+    init_db(&turso).await.expect("DB initialization failed :(");
     let state = AppState::new(turso, templates);
     info!("done intializing appstate");
 
@@ -107,6 +106,7 @@ fn init_session_layer() -> SessionLayer<MemoryStore> {
 
 fn init_templates(ui_dir: &PathBuf) -> Result<Tera, Error> {
     info!("initializing templates...");
+    info!("checking if src/ui exists: {}", ui_dir.exists());
     let templates_dir = ui_dir.join("templates");
     let templates_pattern = format!("{}/**/*.html", templates_dir.display());
     let templates =
@@ -119,8 +119,9 @@ fn init_templates(ui_dir: &PathBuf) -> Result<Tera, Error> {
 async fn main() {
     dotenv::dotenv().ok();
     init_logger();
-    let db_client = init_db_client().await.unwrap();
     let ui_dir = Path::new("src").join("ui");
+    info!("ui dir exists? {}", ui_dir.exists());
+    let db_client = init_db_client().await.unwrap();
     let router = init_router(db_client, &ui_dir).await.unwrap();
     let port = env::var("PORT").unwrap_or("8080".to_string());
     serve(router, port).await.unwrap();
