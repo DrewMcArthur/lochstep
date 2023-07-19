@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install sqlite3 -y
 
 # copy the build artifact from the build stage
 COPY --from=build /lochstep/target/release/lochstep .
+COPY --from=build /lochstep/src/ui /src/ui
 
 # set the startup command to run your binary
 CMD ["./lochstep"]
