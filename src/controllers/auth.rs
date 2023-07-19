@@ -2,13 +2,19 @@ use axum::{debug_handler, Extension, Json};
 use axum_sessions::extractors::WritableSession;
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 use webauthn_rs::prelude::{
     CreationChallengeResponse, PasskeyRegistration, RegisterPublicKeyCredential, WebauthnError,
 };
 
 use crate::{models, state::AppState};
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SessionRegistrationState {
+    pub username: String,
+    pub userid: Uuid,
+    reg_state: PasskeyRegistration,
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct Login {
@@ -30,11 +36,10 @@ pub struct PasskeyRegistrationOptions {
 
 pub async fn get_passkey_registration_options(
     Extension(app): Extension<AppState>,
-    Extension(db): Extension<PgPool>,
     mut session: WritableSession,
     Json(req): Json<PasskeyRegistrationOptionsRequest>,
 ) -> Json<CreationChallengeResponse> {
-    let userid = models::users::create_user(&db, &req.username)
+    let userid = models::users::create_user(&app.db, &req.username)
         .await
         .expect("error creating username");
 
@@ -42,7 +47,7 @@ pub async fn get_passkey_registration_options(
         generate_passkey_registration_challenge(&app, &mut session, &userid, &req.username)
             .await
             .map_err(|e| e.to_string())
-            .unwrap();
+            .expect("error generating passkey challenge");
 
     Json(challenge)
 }
@@ -53,7 +58,7 @@ async fn generate_passkey_registration_challenge(
     userid: &Uuid,
     username: &str,
 ) -> Result<CreationChallengeResponse, WebauthnError> {
-    // log::info!("Start register");
+    // tracing::info!("Start register");
     // We get the username from the URL, but you could get this via form submission or
     // some other process. In some parts of Webauthn, you could also use this as a "display name"
     // instead of a username. Generally you should consider that the user *can* and *will* change
@@ -99,13 +104,20 @@ async fn generate_passkey_registration_challenge(
                 // safe to store the reg_state into the session since it is not client controlled and
                 // not open to replay attacks. If this was a cookie store, this would be UNSAFE.
                 session
-                    .insert("reg_state", (username, userid, reg_state))
+                    .insert(
+                        "reg_state",
+                        SessionRegistrationState {
+                            username: username.to_string(),
+                            userid: *userid,
+                            reg_state,
+                        },
+                    )
                     .expect("Failed to insert");
-                log::info!("Registration Successful!");
+                tracing::info!("Registration Successful!");
                 ccr
             }
             Err(e) => {
-                log::debug!("challenge_register -> {:?}", e);
+                tracing::debug!("challenge_register -> {:?}", e);
                 return Err(e);
             }
         };
@@ -116,7 +128,6 @@ async fn generate_passkey_registration_challenge(
 #[debug_handler]
 pub async fn create_passkey_registration(
     Extension(app): Extension<AppState>,
-    Extension(db): Extension<PgPool>,
     mut session: WritableSession,
     Json(reg): Json<RegisterPublicKeyCredential>,
 ) -> (StatusCode, String) {
@@ -125,12 +136,12 @@ pub async fn create_passkey_registration(
         .ok_or(WebauthnError::CredentialPersistenceError);
 
     if let Err(e) = session_res {
-        log::debug!("challenge_register -> {:?}", e);
+        tracing::debug!("challenge_register -> {:?}", e);
         return (StatusCode::BAD_REQUEST, e.to_string());
     }
 
     let (username, user_unique_id, reg_state): (String, Uuid, PasskeyRegistration) =
-        session_res.unwrap();
+        session_res.expect("error retrieving session registration state");
 
     session.remove("reg_state");
 
@@ -144,23 +155,27 @@ pub async fn create_passkey_registration(
             //     .or_insert_with(|| vec![sk.clone()]);
 
             // save key to db
-            if let Err(e) = models::keys::add_key(&db, user_unique_id, sk).await {
+            if let Err(e) = models::keys::add_key(&app.db, user_unique_id, sk).await {
                 return (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     format!("error saving passkey to db: {}", e),
                 );
             };
 
-            log::info!("saved new key for user {:?}", username);
+            tracing::info!("saved new key for user {:?}", username);
             StatusCode::OK
         }
         Err(e) => {
-            log::debug!("challenge_register -> {:?}", e);
+            tracing::debug!("challenge_register -> {:?}", e);
             StatusCode::BAD_REQUEST
         }
     };
 
     (res, "OK".to_string())
+}
+
+pub(crate) async fn create_password_registration() {
+    todo!();
 }
 
 // async fn register_with_password(

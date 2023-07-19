@@ -1,2 +1,5 @@
 /target
 db.sqlite
+Secret*
+.env
+*.db

@@ -1,16 +1,21 @@
-use sqlx::PgPool;
+use std::sync::Arc;
+
 use uuid::Uuid;
 
-pub async fn create_user(pool: &PgPool, username: &str) -> Result<Uuid, sqlx::Error> {
+pub async fn create_user(
+    client: &Arc<libsql_client::Client>,
+    username: &str,
+) -> Result<Uuid, sqlx::Error> {
     let id = Uuid::new_v4();
     let username = username.to_string();
 
-    sqlx::query(include_str!("db/create_user.sql"))
-        .bind(id)
-        .bind(username)
-        .execute(pool)
+    client
+        .execute(format!(
+            "INSERT INTO users (id, username) VALUES ({}, {});",
+            id, username
+        ))
         .await
-        .unwrap();
+        .expect("error creating user");
 
     Ok(id)
 }

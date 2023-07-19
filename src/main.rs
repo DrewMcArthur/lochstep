@@ -5,9 +5,10 @@ use axum::{
 use axum_sessions::{async_session::MemoryStore, SameSite, SessionLayer};
 use rand::prelude::*;
 use shuttle_axum::ShuttleAxum;
-use sqlx::PgPool;
+use shuttle_service::SecretStore;
 use state::AppState;
 use std::path::PathBuf;
+use tera::Tera;
 use tower_http::services::ServeDir;
 
 mod controllers;
@@ -15,29 +16,25 @@ mod models;
 mod state;
 mod views;
 
+type Error = Box<dyn std::error::Error>;
+
 #[shuttle_runtime::main]
 async fn init(
-    #[shuttle_shared_db::Postgres] pool: PgPool,
-    #[shuttle_static_folder::StaticFolder(folder = "src/ui/static")] static_dir: PathBuf,
+    #[shuttle_secrets::Secrets] secrets: SecretStore,
+    #[shuttle_turso::Turso(
+        addr = "libsql://choice-shredder-drewmcarthur.turso.io",
+        local_addr = "libsql://choice-shredder-drewmcarthur.turso.io",
+        token = "{secrets.DB_TURSO_TOKEN}"
+    )]
+    turso: libsql_client::Client,
+    #[shuttle_static_folder::StaticFolder(folder = "src/ui/")] ui_dir: PathBuf,
 ) -> ShuttleAxum {
-    log::info!("initializing DB");
-    sqlx::migrate!("src/models/db/migrations")
-        .run(&pool)
-        .await
-        .expect("Migrations failed :(");
+    init_db(&turso).await.expect("DB initialization failed :(");
 
-    log::info!("initializing session memorystore");
-    let store = MemoryStore::new();
-    let secret1 = thread_rng().gen::<[u8; 32]>(); // MUST be at least 64 bytes!
-    let secret2 = thread_rng().gen::<[u8; 32]>(); // MUST be at least 64 bytes!
-    let secret = [secret1, secret2].concat();
-    let session_layer = SessionLayer::new(store, &secret)
-        .with_cookie_name("webauthnrs")
-        .with_same_site_policy(SameSite::Lax)
-        .with_secure(true);
-
-    log::info!("intializing appstate and router");
-    let state = AppState::new();
+    tracing::info!("intializing appstate and router");
+    let templates = init_templates(&ui_dir);
+    let static_dir = ui_dir.join("static");
+    let state = AppState::new(turso, templates);
 
     let router = Router::new()
         .route("/", get(controllers::index))
@@ -49,15 +46,57 @@ async fn init(
             "/auth/passkey/registration/create",
             post(controllers::auth::create_passkey_registration),
         )
-        // .route(
-        //     "/auth/password/registration/create",
-        //     post(controllers::auth::create_password_registration),
-        // )
+        .route(
+            "/auth/password/registration/create",
+            post(controllers::auth::create_password_registration),
+        )
         .nest_service("/static", ServeDir::new(static_dir))
-        .layer(session_layer)
-        .layer(Extension(state))
-        .layer(Extension(pool));
+        .layer(init_session_layer())
+        .layer(Extension(state));
 
-    log::info!("done initializing.");
+    tracing::info!("done initializing.");
     Ok(router.into())
+}
+
+async fn init_db(client: &libsql_client::Client) -> Result<(), Error> {
+    let create_users_table = "CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            username TEXT,
+            pw TEXT
+          );";
+    let create_keys_table = "CREATE TABLE IF NOT EXISTS keys (
+            id INT PRIMARY KEY,
+            userid TEXT,
+            key TEXT
+          );";
+
+    client
+        .execute(create_users_table)
+        .await
+        .expect("error creating users table");
+    client
+        .execute(create_keys_table)
+        .await
+        .expect("error creating keys table");
+
+    Ok(())
+}
+
+fn init_session_layer() -> SessionLayer<MemoryStore> {
+    tracing::info!("initializing session memorystore");
+    let store = MemoryStore::new();
+    let secret1 = thread_rng().gen::<[u8; 32]>(); // MUST be at least 64 bytes!
+    let secret2 = thread_rng().gen::<[u8; 32]>(); // MUST be at least 64 bytes!
+    let secret = [secret1, secret2].concat();
+
+    SessionLayer::new(store, &secret)
+        .with_cookie_name("webauthnrs")
+        .with_same_site_policy(SameSite::Lax)
+        .with_secure(true)
+}
+
+fn init_templates(ui_dir: &PathBuf) -> Tera {
+    let templates_dir = ui_dir.join("templates");
+    let templates_pattern = format!("{}/**/*.html", templates_dir.display());
+    Tera::new(templates_pattern.as_str()).expect("Error loading templates directory")
 }
