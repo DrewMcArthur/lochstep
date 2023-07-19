@@ -10,16 +10,12 @@ pub async fn create_user(
     let username = username.to_string();
 
     client
-        .execute(format!(include_str!("db/create_user.sql"), id, username))
+        .execute(format!(
+            "INSERT INTO users (id, username) VALUES ({}, {});",
+            id, username
+        ))
         .await
         .expect("error creating user");
-
-    // sqlx::query(include_str!("db/create_user.sql"))
-    //     .bind(id)
-    //     .bind(username)
-    //     .execute(pool)
-    //     .await
-    //     .unwrap();
 
     Ok(id)
 }
