@@ -2,13 +2,25 @@ use axum::{debug_handler, Extension, Json};
 use axum_sessions::extractors::WritableSession;
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 use webauthn_rs::prelude::{
     CreationChallengeResponse, PasskeyRegistration, RegisterPublicKeyCredential, WebauthnError,
 };
 
 use crate::{models, state::AppState};
+
+#[derive(Serialize, Deserialize)]
+pub struct SessionRegistrationState {
+    pub username: String,
+    pub userid: Uuid,
+    reg_state: PasskeyRegistration,
+}
+
+impl SessionRegistrationState {
+    pub fn is_logged_in(&self) -> bool {
+        true
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct Login {
@@ -98,7 +110,14 @@ async fn generate_passkey_registration_challenge(
                 // safe to store the reg_state into the session since it is not client controlled and
                 // not open to replay attacks. If this was a cookie store, this would be UNSAFE.
                 session
-                    .insert("reg_state", (username, userid, reg_state))
+                    .insert(
+                        "reg_state",
+                        SessionRegistrationState {
+                            username: username.to_string(),
+                            userid: *userid,
+                            reg_state,
+                        },
+                    )
                     .expect("Failed to insert");
                 log::info!("Registration Successful!");
                 ccr
@@ -115,7 +134,6 @@ async fn generate_passkey_registration_challenge(
 #[debug_handler]
 pub async fn create_passkey_registration(
     Extension(app): Extension<AppState>,
-    Extension(db): Extension<PgPool>,
     mut session: WritableSession,
     Json(reg): Json<RegisterPublicKeyCredential>,
 ) -> (StatusCode, String) {
@@ -143,7 +161,7 @@ pub async fn create_passkey_registration(
             //     .or_insert_with(|| vec![sk.clone()]);
 
             // save key to db
-            if let Err(e) = models::keys::add_key(&db, user_unique_id, sk).await {
+            if let Err(e) = models::keys::add_key(&app.db, user_unique_id, sk).await {
                 return (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     format!("error saving passkey to db: {}", e),
@@ -160,6 +178,10 @@ pub async fn create_passkey_registration(
     };
 
     (res, "OK".to_string())
+}
+
+pub(crate) async fn create_password_registration() {
+    todo!();
 }
 
 // async fn register_with_password(

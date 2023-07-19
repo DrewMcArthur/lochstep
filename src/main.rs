@@ -37,18 +37,18 @@ async fn init(
 
     let router = Router::new()
         .route("/", get(controllers::index))
-        // .route(
-        //     "/auth/passkey/registration/options",
-        //     post(controllers::auth::get_passkey_registration_options),
-        // )
-        // .route(
-        //     "/auth/passkey/registration/create",
-        //     post(controllers::auth::create_passkey_registration),
-        // )
-        // .route(
-        //     "/auth/password/registration/create",
-        //     post(controllers::auth::create_password_registration),
-        // )
+        .route(
+            "/auth/passkey/registration/options",
+            post(controllers::auth::get_passkey_registration_options),
+        )
+        .route(
+            "/auth/passkey/registration/create",
+            post(controllers::auth::create_passkey_registration),
+        )
+        .route(
+            "/auth/password/registration/create",
+            post(controllers::auth::create_password_registration),
+        )
         .nest_service("/static", ServeDir::new(static_dir))
         .layer(init_session_layer())
         .layer(Extension(state));

@@ -3,17 +3,14 @@ use axum_sessions::extractors::WritableSession;
 
 use crate::{state::AppState, views};
 
+use self::auth::SessionRegistrationState;
+
 pub mod auth;
 
-pub async fn index(
-    Extension(app): Extension<AppState>,
-    mut session: WritableSession,
-) -> Html<String> {
-    // let info = session.get("reg_state").unwrap();
-    let logged_in = false; // TODO
-    if logged_in {
-        views::homepage(app.templates)
-    } else {
-        views::login(app.templates)
+pub async fn index(Extension(app): Extension<AppState>, session: WritableSession) -> Html<String> {
+    let reg_state: Option<SessionRegistrationState> = session.get("reg_state");
+    match reg_state {
+        Some(_) => views::homepage(app.templates),
+        None => views::login(app.templates),
     }
 }
