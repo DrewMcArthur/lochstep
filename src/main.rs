@@ -3,9 +3,8 @@ use axum::{
     Extension, Router,
 };
 use axum_sessions::{async_session::MemoryStore, SameSite, SessionLayer};
+use log::info;
 use rand::prelude::*;
-use shuttle_axum::ShuttleAxum;
-use shuttle_service::SecretStore;
 use simple_logger::SimpleLogger;
 use state::AppState;
 use std::{
@@ -39,11 +38,13 @@ type Error = Box<dyn std::error::Error>;
 async fn init_router(turso: libsql_client::Client, ui_dir: &PathBuf) -> Result<Router, Error> {
     init_db(&turso).await.expect("DB initialization failed :(");
 
-    tracing::info!("intializing appstate and router");
-    let templates = init_templates(&ui_dir);
+    info!("intializing appstate");
+    let templates = init_templates(&ui_dir).unwrap();
     let static_dir = ui_dir.join("static");
     let state = AppState::new(turso, templates);
+    info!("done intializing appstate");
 
+    info!("intializing router");
     let router = Router::new()
         .route("/", get(controllers::index))
         .route(
@@ -62,12 +63,12 @@ async fn init_router(turso: libsql_client::Client, ui_dir: &PathBuf) -> Result<R
         .layer(init_session_layer())
         .layer(Extension(state));
 
-    tracing::info!("done initializing.");
+    info!("done initializing router.");
     Ok(router)
 }
 
 async fn init_db(client: &libsql_client::Client) -> Result<(), Error> {
-    tracing::info!("initializing db");
+    info!("initializing db");
     let create_users_table = "CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
             username TEXT,
@@ -92,7 +93,7 @@ async fn init_db(client: &libsql_client::Client) -> Result<(), Error> {
 }
 
 fn init_session_layer() -> SessionLayer<MemoryStore> {
-    tracing::info!("initializing session memorystore");
+    info!("initializing session memorystore");
     let store = MemoryStore::new();
     let secret1 = thread_rng().gen::<[u8; 32]>(); // MUST be at least 64 bytes!
     let secret2 = thread_rng().gen::<[u8; 32]>(); // MUST be at least 64 bytes!
@@ -104,10 +105,14 @@ fn init_session_layer() -> SessionLayer<MemoryStore> {
         .with_secure(true)
 }
 
-fn init_templates(ui_dir: &PathBuf) -> Tera {
+fn init_templates(ui_dir: &PathBuf) -> Result<Tera, Error> {
+    info!("initializing templates...");
     let templates_dir = ui_dir.join("templates");
     let templates_pattern = format!("{}/**/*.html", templates_dir.display());
-    Tera::new(templates_pattern.as_str()).expect("Error loading templates directory")
+    let templates =
+        Tera::new(templates_pattern.as_str()).expect("Error loading templates directory");
+    info!("done initializing templates.");
+    Ok(templates)
 }
 
 #[tokio::main]
@@ -133,13 +138,13 @@ async fn init_db_client() -> Result<libsql_client::Client, Error> {
 }
 fn init_logger() {
     SimpleLogger::new()
-        .with_level(log::LevelFilter::Info)
+        .with_level(log::LevelFilter::Debug)
         .init()
         .unwrap();
 }
 
 async fn serve(router: Router, port: String) -> Result<(), Error> {
-    log::info!("router initialized, listening on :{}", port);
+    info!("router initialized, listening on :{}", port);
     axum::Server::bind(&format!("0.0.0.0:{}", port).parse().unwrap())
         .serve(router.into_make_service())
         .await

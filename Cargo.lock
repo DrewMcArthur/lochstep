@@ -1387,7 +1387,6 @@ dependencies = [
  "tera",
  "tokio",
  "tower-http",
- "tracing",
  "url",
  "uuid",
  "webauthn-rs",

@@ -58,7 +58,7 @@ async fn generate_passkey_registration_challenge(
     userid: &Uuid,
     username: &str,
 ) -> Result<CreationChallengeResponse, WebauthnError> {
-    // tracing::info!("Start register");
+    // log::info!("Start register");
     // We get the username from the URL, but you could get this via form submission or
     // some other process. In some parts of Webauthn, you could also use this as a "display name"
     // instead of a username. Generally you should consider that the user *can* and *will* change
@@ -113,11 +113,11 @@ async fn generate_passkey_registration_challenge(
                         },
                     )
                     .expect("Failed to insert");
-                tracing::info!("Registration Successful!");
+                log::info!("Registration Successful!");
                 ccr
             }
             Err(e) => {
-                tracing::debug!("challenge_register -> {:?}", e);
+                log::debug!("challenge_register -> {:?}", e);
                 return Err(e);
             }
         };
@@ -136,7 +136,7 @@ pub async fn create_passkey_registration(
         .ok_or(WebauthnError::CredentialPersistenceError);
 
     if let Err(e) = session_res {
-        tracing::debug!("challenge_register -> {:?}", e);
+        log::debug!("challenge_register -> {:?}", e);
         return (StatusCode::BAD_REQUEST, e.to_string());
     }
 
@@ -162,11 +162,11 @@ pub async fn create_passkey_registration(
                 );
             };
 
-            tracing::info!("saved new key for user {:?}", username);
+            log::info!("saved new key for user {:?}", username);
             StatusCode::OK
         }
         Err(e) => {
-            tracing::debug!("challenge_register -> {:?}", e);
+            log::debug!("challenge_register -> {:?}", e);
             StatusCode::BAD_REQUEST
         }
     };
