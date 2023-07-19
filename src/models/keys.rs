@@ -6,7 +6,7 @@ pub async fn update_user_password(
     db: &Client,
     userid: Uuid,
     password: String,
-) -> Result<(), sqlx::Error> {
+) -> Result<(), crate::Error> {
     let stmt = format!(
         "update users set password = {} where id = {};",
         password, userid
@@ -17,7 +17,7 @@ pub async fn update_user_password(
     Ok(())
 }
 
-pub async fn add_key(db: &Client, uuid: Uuid, key: Passkey) -> Result<(), sqlx::Error> {
+pub async fn add_key(db: &Client, uuid: Uuid, key: Passkey) -> Result<(), crate::Error> {
     let stmt = format!(
         "INSERT INTO keys (userid, pubkey) VALUES ({}, {})",
         uuid,
