@@ -29,5 +29,6 @@ sqlx = {version = "0.6.2", features = ["postgres", "runtime-tokio-native-tls", "
 tera = "1"
 tokio = {version = "1.29.1", features = ["macros", "rt-multi-thread"]}
 tower-http = {version = "0.4.1", features = ["fs"]}
+tracing = { version = "0.1.37", features = ["log"] }
 uuid = {version = "1.4.0", features = ["serde"]}
 webauthn-rs = {version = "0.4.8", features = ["danger-allow-state-serialisation"]}
