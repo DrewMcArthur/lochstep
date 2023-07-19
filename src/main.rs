@@ -148,6 +148,8 @@ async fn init_db_client() -> Result<libsql_client::Client, Error> {
 fn init_logger() {
     SimpleLogger::new()
         .with_level(log::LevelFilter::Debug)
+        .with_module_level("hyper", log::LevelFilter::Info)
+        .with_module_level("h2", log::LevelFilter::Info)
         .init()
         .unwrap();
 }
