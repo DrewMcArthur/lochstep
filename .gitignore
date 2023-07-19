@@ -3,3 +3,4 @@ db.sqlite
 Secret*
 .env
 *.db
+.DS_Store
