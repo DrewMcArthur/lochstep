@@ -69,8 +69,16 @@ async fn init_db(client: &libsql_client::Client) -> Result<(), Error> {
             userid TEXT,
             key TEXT
           );";
-    client.execute(create_users_table).await.unwrap();
-    client.execute(create_keys_table).await.unwrap();
+
+    client
+        .execute(create_users_table)
+        .await
+        .expect("error creating users table");
+    client
+        .execute(create_keys_table)
+        .await
+        .expect("error creating keys table");
+
     Ok(())
 }
 

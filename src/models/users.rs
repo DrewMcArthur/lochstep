@@ -12,7 +12,7 @@ pub async fn create_user(
     client
         .execute(format!(include_str!("db/create_user.sql"), id, username))
         .await
-        .unwrap();
+        .expect("error creating user");
 
     // sqlx::query(include_str!("db/create_user.sql"))
     //     .bind(id)

@@ -141,7 +141,7 @@ pub async fn create_passkey_registration(
     }
 
     let (username, user_unique_id, reg_state): (String, Uuid, PasskeyRegistration) =
-        session_res.unwrap();
+        session_res.expect("error retrieving session registration state");
 
     session.remove("reg_state");
 

@@ -21,7 +21,7 @@ pub async fn add_key(db: &Client, uuid: Uuid, key: Passkey) -> Result<(), sqlx::
     let stmt = format!(
         "INSERT INTO keys (userid, pubkey) VALUES ({}, {})",
         uuid,
-        serde_json::to_string(&key).unwrap()
+        serde_json::to_string(&key).expect("error serializing PassKey json")
     );
     db.execute(stmt).await.expect("error adding key to db");
     Ok(())
