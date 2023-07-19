@@ -21,10 +21,10 @@ impl AppState {
 
 fn init_webauthn() -> Webauthn {
     // Effective domain name.
-    let rp_id = "localhost";
+    let rp_id = "lochstep.mcarthur.in";
     // Url containing the effective domain name
     // MUST include the port number!
-    let rp_origin = Url::parse("http://localhost:3000").expect("Invalid URL");
+    let rp_origin = Url::parse("https://lochstep.mcarthur.in").expect("Invalid URL");
     let builder = WebauthnBuilder::new(rp_id, &rp_origin).expect("Invalid configuration");
 
     // Now, with the builder you can define other options.
