@@ -145,6 +145,7 @@ async fn init_db_client() -> Result<libsql_client::Client, Error> {
     let client = libsql_client::Client::from_config(config).await.unwrap();
     Ok(client)
 }
+
 fn init_logger() {
     SimpleLogger::new()
         .with_level(log::LevelFilter::Debug)

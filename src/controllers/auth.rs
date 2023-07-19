@@ -38,10 +38,11 @@ pub async fn get_passkey_registration_options(
     Extension(app): Extension<AppState>,
     mut session: WritableSession,
     Json(req): Json<PasskeyRegistrationOptionsRequest>,
-) -> Json<CreationChallengeResponse> {
-    let userid = models::users::create_user(&app.db, &req.username)
-        .await
-        .expect("error creating username");
+) -> (StatusCode, Json<Option<CreationChallengeResponse>>) {
+    let userid = match models::users::create_user(&app.db, &req.username).await {
+        Ok(id) => id,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(None)),
+    };
 
     let challenge =
         generate_passkey_registration_challenge(&app, &mut session, &userid, &req.username)
@@ -49,7 +50,7 @@ pub async fn get_passkey_registration_options(
             .map_err(|e| e.to_string())
             .expect("error generating passkey challenge");
 
-    Json(challenge)
+    (StatusCode::OK, Json(Some(challenge)))
 }
 
 async fn generate_passkey_registration_challenge(
