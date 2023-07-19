@@ -88,6 +88,7 @@ async fn init_db(client: &libsql_client::Client) -> Result<(), Error> {
         .await
         .expect("error creating keys table");
 
+    info!("done initializing db");
     Ok(())
 }
 
@@ -136,11 +137,10 @@ async fn main() {
 
 async fn init_db_client() -> Result<libsql_client::Client, Error> {
     let db_url = "libsql://choice-shredder-drewmcarthur.turso.io";
-    // let token = env::var("DB_TURSO_TOKEN").expect("error loading env.DB_TURSO_TOKEN");
+    let token = env::var("DB_TURSO_TOKEN").expect("error loading env.DB_TURSO_TOKEN");
     let config = libsql_client::Config {
         url: url::Url::parse(db_url).expect("error parsing turso db url"),
-        // auth_token: Some(token),
-        auth_token: None,
+        auth_token: Some(token),
     };
     let client = libsql_client::Client::from_config(config).await.unwrap();
     Ok(client)
