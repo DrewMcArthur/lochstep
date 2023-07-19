@@ -8,16 +8,15 @@ pub async fn create_user(
     username: &str,
 ) -> Result<Uuid, crate::Error> {
     let id = Uuid::new_v4();
-
     debug!("creating user: {}, {}", id, username);
-    client
-        .execute(format!(
-            "INSERT INTO users (id, username) VALUES ({}, {});",
-            id.to_string(),
-            username.to_string()
-        ))
-        .await
-        .expect("error creating user");
+    let stmt = format!(
+        "INSERT INTO users (id, username) VALUES (\"{}\", \"{}\");",
+        id.to_string(),
+        username.to_string()
+    );
+    debug!("stmt: {}", stmt);
+
+    client.execute(stmt).await.expect("error creating user");
 
     debug!("user {} created", id);
     Ok(id)
