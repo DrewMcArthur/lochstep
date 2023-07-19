@@ -150,6 +150,7 @@ fn init_logger() {
         .with_level(log::LevelFilter::Debug)
         .with_module_level("hyper", log::LevelFilter::Info)
         .with_module_level("h2", log::LevelFilter::Info)
+        .with_module_level("rustls", log::LevelFilter::Info)
         .init()
         .unwrap();
 }
