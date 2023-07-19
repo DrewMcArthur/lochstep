@@ -9,7 +9,7 @@ use webauthn_rs::prelude::{
 
 use crate::{models, state::AppState};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SessionRegistrationState {
     pub username: String,
     pub userid: Uuid,
