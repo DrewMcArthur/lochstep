@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use log::debug;
 use uuid::Uuid;
 
 pub async fn create_user(
@@ -7,15 +8,17 @@ pub async fn create_user(
     username: &str,
 ) -> Result<Uuid, crate::Error> {
     let id = Uuid::new_v4();
-    let username = username.to_string();
 
+    debug!("creating user: {}, {}", id, username);
     client
         .execute(format!(
             "INSERT INTO users (id, username) VALUES ({}, {});",
-            id, username
+            id.to_string(),
+            username.to_string()
         ))
         .await
         .expect("error creating user");
 
+    debug!("user {} created", id);
     Ok(id)
 }
