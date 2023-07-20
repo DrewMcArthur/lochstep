@@ -142,9 +142,9 @@ fn init_session_layer() -> SessionLayer<MemoryStore> {
     let secret = [secret1, secret2].concat();
 
     SessionLayer::new(store, &secret)
-        .with_cookie_name("webauthnrs")
+        .with_cookie_name("sid")
         .with_same_site_policy(SameSite::Lax)
-        .with_secure(true)
+        .with_secure(true) // TODO: set this to true iff prod
 }
 
 fn init_templates(ui_dir: &PathBuf) -> Result<Tera, Error> {

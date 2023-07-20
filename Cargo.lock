@@ -1429,6 +1429,7 @@ dependencies = [
  "axum-sessions",
  "dotenv",
  "glob",
+ "http",
  "hyper",
  "lazy_static",
  "libsql-client 0.31.8",

@@ -5,16 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug executable 'v3'",
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'v3'",
-            "cargo": {
-                "args": [
-                    "run",
-                ],
-            },
+            "program": "${workspaceFolder}/target/debug/lochstep",
+            "preLaunchTask": "rust: cargo build",
             "args": [],
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
         },
         {
             "type": "lldb",

@@ -4,10 +4,12 @@ use tera::{Context, Tera};
 
 use crate::errors::Errors;
 
-pub fn homepage(templates: Tera) -> Html<String> {
+pub fn homepage(templates: Tera, name: String) -> Html<String> {
+    let mut ctx = Context::new();
+    ctx.insert("name", &name);
     Html(
         templates
-            .render("homepage.html", &Context::new())
+            .render("homepage.html", &ctx)
             .expect("error rendering homepage"),
     )
 }
