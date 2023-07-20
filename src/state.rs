@@ -1,8 +1,8 @@
-use axum::response::ErrorResponse;
-use hyper::StatusCode;
 use std::{env, sync::Arc};
 use tera::Tera;
 use webauthn_rs::{prelude::Url, Webauthn, WebauthnBuilder};
+
+use crate::Error;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -21,31 +21,19 @@ impl AppState {
     }
 }
 
-pub fn init_webauthn() -> Result<Webauthn, ErrorResponse> {
+pub fn init_webauthn() -> Result<Webauthn, Error> {
     // Effective domain name.
     let rp_id = "lochstep.mcarthur.in";
     // Url containing the effective domain name
     // MUST include the port number!
     let rp_origin = match Url::parse(format!("https://{}:{}", rp_id, get_app_port()).as_str()) {
         Ok(url) => url,
-        Err(e) => {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("error parsing RP_ID to url: {}", e.to_string()),
-            )
-                .into())
-        }
+        Err(e) => return Err(Box::new(e)),
     };
 
     let builder = match WebauthnBuilder::new(rp_id, &rp_origin) {
         Ok(builder) => builder,
-        Err(e) => {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("error creating webauthn builder: {}", e.to_string()),
-            )
-                .into())
-        }
+        Err(e) => return Err(Box::new(e)),
     };
 
     // Now, with the builder you can define other options.
@@ -56,14 +44,9 @@ pub fn init_webauthn() -> Result<Webauthn, ErrorResponse> {
     // Consume the builder and create our webauthn instance.
     let webauthn = match builder.build() {
         Ok(webauthn) => webauthn,
-        Err(e) => {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("error building webauthn: {}", e),
-            )
-                .into())
-        }
+        Err(e) => return Err(Box::new(e)),
     };
+
     Ok(webauthn)
 }
 

@@ -1,5 +1,5 @@
 const enablePasskeyAuth = async () =>
-  true &&
+  PublicKeyCredential &&
   (await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
     .then((passkeyAuthAvailable) => passkeyAuthAvailable)
     .catch((e) => false));

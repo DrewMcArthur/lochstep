@@ -5,7 +5,7 @@ use axum::{
 };
 use axum_sessions::{async_session::MemoryStore, SameSite, SessionLayer};
 use hyper::StatusCode;
-use log::{debug, info};
+use log::{error, info};
 use rand::prelude::*;
 use simple_logger::SimpleLogger;
 use state::AppState;
@@ -42,36 +42,39 @@ type Error = Box<dyn std::error::Error>;
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
-    init_logger();
+    init_logger().expect("error initializing logger");
+
     let ui_dir = Path::new("src").join("ui");
     info!("ui dir exists? {}", ui_dir.exists());
-    let db_client = init_db_client().await.unwrap();
-    let router = init_router(db_client, &ui_dir).await.unwrap();
+
+    let db_client = init_db_client()
+        .await
+        .expect("error initializing db client");
+
+    let router = init_router(db_client, &ui_dir)
+        .await
+        .expect("error initializing router");
+
     let port = env::var("PORT").unwrap_or("8080".to_string());
-    serve(router, port).await.unwrap();
+    serve(router, port)
+        .await
+        .expect("error serving router to port");
 }
 
-async fn init_router(
-    turso: libsql_client::Client,
-    ui_dir: &PathBuf,
-) -> Result<Router, ErrorResponse> {
+async fn init_router(db_client: libsql_client::Client, ui_dir: &PathBuf) -> Result<Router, Error> {
     info!("intializing appstate");
-    let templates = init_templates(&ui_dir).unwrap();
-    let static_dir = ui_dir.join("static");
+    let templates: Tera = match init_templates(&ui_dir) {
+        Ok(templates) => templates,
+        Err(e) => return Err(e),
+    };
+    let static_dir: PathBuf = ui_dir.join("static");
 
-    match init_db(&turso).await {
-        Ok(_) => (),
-        Err(e) => {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("error initializing DB: {}", e.to_string()),
-            )
-                .into())
-        }
+    if let Err(e) = init_db(&db_client).await {
+        return Err(e);
     }
 
-    let state = match init_webauthn() {
-        Ok(webauthn) => AppState::new(webauthn, turso, templates),
+    let state: AppState = match init_webauthn() {
+        Ok(web_authn) => AppState::new(web_authn, db_client, templates),
         Err(e) => return Err(e),
     };
     info!("done intializing appstate");
@@ -116,6 +119,7 @@ async fn init_db(client: &libsql_client::Client) -> Result<(), Error> {
         .execute(create_users_table)
         .await
         .expect("error creating users table");
+
     client
         .execute(create_keys_table)
         .await
@@ -140,13 +144,8 @@ fn init_session_layer() -> SessionLayer<MemoryStore> {
 
 fn init_templates(ui_dir: &PathBuf) -> Result<Tera, Error> {
     info!("initializing templates...");
-    info!("checking if src/ui exists: {}", ui_dir.exists());
     let templates_dir = ui_dir.join("templates");
     let templates_pattern = format!("{}/**/*.html", templates_dir.display());
-    for file in glob::glob(&templates_pattern).unwrap() {
-        let file = file.unwrap();
-        debug!("{:?}: {}", file, file.exists());
-    }
     let mut templates =
         Tera::parse(templates_pattern.as_str()).expect("Error parsing templates directory");
     templates
@@ -163,26 +162,35 @@ async fn init_db_client() -> Result<libsql_client::Client, Error> {
         url: url::Url::parse(db_url).expect("error parsing turso db url"),
         auth_token: Some(token),
     };
-    let client = libsql_client::Client::from_config(config).await.unwrap();
-    Ok(client)
+
+    match libsql_client::Client::from_config(config).await {
+        Ok(client) => Ok(client),
+        Err(e) => Err(format!("error initializing db client: {}", e.to_string()).into()),
+    }
 }
 
-fn init_logger() {
+fn init_logger() -> Result<(), log::SetLoggerError> {
     SimpleLogger::new()
         .with_level(log::LevelFilter::Debug)
         .with_module_level("hyper", log::LevelFilter::Info)
         .with_module_level("h2", log::LevelFilter::Info)
         .with_module_level("rustls", log::LevelFilter::Info)
         .init()
-        .unwrap();
 }
 
 async fn serve(router: Router, port: String) -> Result<(), Error> {
     info!("router initialized, listening on :{}", port);
-    axum::Server::bind(&format!("0.0.0.0:{}", port).parse().unwrap())
+    match axum::Server::bind(&format!("0.0.0.0:{}", port).parse().unwrap())
         .serve(router.into_make_service())
         .await
-        .unwrap();
+    {
+        Ok(_) => Ok(()),
+        Err(e) => Err(Box::new(e)),
+    }
+}
 
-    Ok(())
+pub fn handle_error(err_msg: &str, e: Error) -> ErrorResponse {
+    let err_msg = format!("{}: {}", err_msg, e.to_string());
+    error!("{}", err_msg);
+    return (StatusCode::INTERNAL_SERVER_ERROR, err_msg).into();
 }
