@@ -9,15 +9,16 @@
 <p class="important">
     Welcome!
 </p>
-<section class="register">
-    <h2>Register</h2>
-    <input class="username" type="text" name="username" placeholder="username">
-    <input class="password hidden" type="password" name="password" placeholder="password">
-    <button>Register</button>
+<section class="register login">
+    <h2>Login or Register</h2>
+    <form hx-target=".form-response">
+        <input class="username" type="text" name="username" placeholder="username">
+        <input class="password " type="password" name="password" placeholder="password">
+        <button hx-post="/auth/password/register" hx-ext="json-enc" class="register">Register</button>
+        <button hx-post="/auth/password/login" hx-ext="json-enc" class="login">Login</button>
+    </form>
+    <div class="form-response"></div>
 </section>
-<section class="hidden login">
-    <h2>Login</h2>
-    <form class="login" hx-ext="json-enc" hx-target="section.login">
-</section>
-<script type="text/javascript" src="/static/scripts/register.js"></script>
+{# disabled until passkey registration is implemented
+<script type="text/javascript" src="/static/scripts/register.js"></script> #}
 {% endblock content %}

@@ -1,38 +1,71 @@
-const enablePasskeyAuth = async () =>
-  PublicKeyCredential &&
-  (await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-    .then((passkeyAuthAvailable) => passkeyAuthAvailable)
-    .catch((e) => false));
+///
+// for use with webauthn.io / passkey authentication.  disabled for now
+///
 
 const showPasswordField = () => {
   htmx.removeClass(htmx.find("input.password"), "hidden");
 };
 
+const enablePasskeyAuth = async () => {
+  const enabled =
+    false &&
+    PublicKeyCredential &&
+    (await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+      .then((passkeyAuthAvailable) => passkeyAuthAvailable)
+      .catch((e) => false));
+  if (!enabled) showPasswordField();
+  return enabled;
+};
+
+const isPasskeyAuthEnabled = enablePasskeyAuth();
+
+const validate = () => {
+  hideValidationError();
+  let valid =
+    htmx.find("input.password").value !== "" &&
+    htmx.find("input.username").value !== "";
+  if (!valid) showValidationError();
+  return valid;
+};
+
+const showValidationError = () =>
+  htmx.find(".validation-error").classList.remove("hidden");
+const hideValidationError = () =>
+  htmx.find(".validation-error").classList.add("hidden");
+
+const hide = (className) => htmx.find(className).classList.add("hidden");
+const show = (className) => htmx.find(className).classList.remove("hidden");
+
 const register = async () => {
-  if (await enablePasskeyAuth()) {
-    registerPasskey();
-  } else {
-    registerPassword();
-  }
+  const passKeyAuthEnabled = enablePasskeyAuth();
+  if (!validate()) return;
+  if (await passKeyAuthEnabled) registerPasskey();
+  else registerPassword();
 };
 
 const registerPassword = async () => {
   const password = htmx.find("input.password").value;
-  if (password == "") {
-    showPasswordField();
-    return;
-  }
   const username = htmx.find("input.username").value;
 
   const res = await fetch("/auth/password/registration/create", {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
       username,
       password,
     }),
   });
 
-  console.log("POST /auth/password/registration/create response: " + res);
+  if (res.ok) {
+    hide(".register");
+    show(".login");
+  }
+
+  console.log(
+    "POST /auth/password/registration/create response: " + JSON.stringify(res)
+  );
 };
 
 const registerPasskey = async () => {
@@ -91,4 +124,10 @@ const createPasskeyRegistration = async (credential) => {
   });
 };
 
-htmx.find("section.register button").addEventListener("click", register);
+const login = () => {};
+
+htmx
+  .find("section.register button.register")
+  .addEventListener("click", register);
+
+htmx.find("section.register button.login").addEventListener("click", login);

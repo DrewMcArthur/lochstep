@@ -4,6 +4,7 @@ use axum::{
     Extension, Router,
 };
 use axum_sessions::{async_session::MemoryStore, SameSite, SessionLayer};
+use errors::Errors;
 use hyper::StatusCode;
 use log::{error, info};
 use rand::prelude::*;
@@ -19,6 +20,7 @@ use tower_http::services::ServeDir;
 use crate::state::{get_app_port, init_webauthn};
 
 mod controllers;
+mod errors;
 mod models;
 mod state;
 mod views;
@@ -91,9 +93,10 @@ async fn init_router(db_client: libsql_client::Client, ui_dir: &PathBuf) -> Resu
             post(controllers::auth::create_passkey_registration),
         )
         .route(
-            "/auth/password/registration/create",
+            "/auth/password/register",
             post(controllers::auth::create_password_registration),
         )
+        .route("/auth/password/login", post(controllers::auth::login))
         .nest_service("/static", ServeDir::new(static_dir))
         .layer(init_session_layer())
         .layer(Extension(state));
@@ -107,7 +110,8 @@ async fn init_db(client: &libsql_client::Client) -> Result<(), Error> {
     let create_users_table = "CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
             username TEXT,
-            pw TEXT
+            hash TEXT,
+            salt TEXT
           );";
     let create_keys_table = "CREATE TABLE IF NOT EXISTS keys (
             id INT PRIMARY KEY,
@@ -171,7 +175,7 @@ async fn init_db_client() -> Result<libsql_client::Client, Error> {
 
 fn init_logger() -> Result<(), log::SetLoggerError> {
     SimpleLogger::new()
-        .with_level(log::LevelFilter::Debug)
+        .with_level(log::LevelFilter::Info)
         .with_module_level("hyper", log::LevelFilter::Info)
         .with_module_level("h2", log::LevelFilter::Info)
         .with_module_level("rustls", log::LevelFilter::Info)
@@ -189,7 +193,7 @@ async fn serve(router: Router, port: String) -> Result<(), Error> {
     }
 }
 
-pub fn handle_error(err_msg: &str, e: Error) -> ErrorResponse {
+pub fn handle_error(err_msg: &str, e: Errors) -> ErrorResponse {
     let err_msg = format!("{}: {}", err_msg, e.to_string());
     error!("{}", err_msg);
     return (StatusCode::INTERNAL_SERVER_ERROR, err_msg).into();

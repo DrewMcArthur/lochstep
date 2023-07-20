@@ -1,0 +1,12 @@
+<p>Success! You're now logged in. Redirecting in... <span class="countdown">5</span></p>
+<script>
+    const countdownElement = htmx.find(".countdown")
+    let secondsLeft = 5
+    setInterval(() => {
+        if (secondsLeft <= 0) {
+            console.log("redirecting now!")
+            window.location.href = "/home"
+        }
+        countdownElement.innerHTML = --secondsLeft
+    }, 1000)
+</script>

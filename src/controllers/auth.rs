@@ -1,4 +1,7 @@
-use axum::{response::ErrorResponse, Extension, Json};
+use axum::{
+    response::{ErrorResponse, Html},
+    Extension, Json,
+};
 use axum_sessions::extractors::WritableSession;
 use hyper::StatusCode;
 use log::debug;
@@ -8,7 +11,7 @@ use webauthn_rs::prelude::{
     CreationChallengeResponse, PasskeyRegistration, RegisterPublicKeyCredential,
 };
 
-use crate::{models, state::AppState, Error};
+use crate::{errors::Errors, handle_error, models, state::AppState, views, Error};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SessionRegistrationState {
@@ -17,10 +20,16 @@ pub struct SessionRegistrationState {
     reg_state: PasskeyRegistration,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AuthState {
+    pub username: String,
+    pub userid: Uuid,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Login {
     username: String,
-    password: Option<String>,
+    password: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -194,23 +203,59 @@ pub async fn create_passkey_registration(
     Ok(())
 }
 
-pub(crate) async fn create_password_registration() {
-    todo!();
+pub(crate) async fn create_password_registration(
+    Extension(app): Extension<AppState>,
+    mut session: WritableSession,
+    Json(req): Json<Login>,
+) -> Result<(StatusCode, String), ErrorResponse> {
+    debug!("creating password registration");
+    session.remove("auth_state");
+    // check if user exists in db, if so login
+    // add user/pw to db
+    if let Err(e) =
+        models::passwords::create_user_with_password(&app.db, &req.username, &req.password).await
+    {
+        return Err(handle_error("Error creating password", e));
+    }
+    Ok((StatusCode::ACCEPTED, "Success! Please login.".to_string()))
 }
 
-// async fn register_with_password(
-//     db: &Database,
-//     userid: &Uuid,
-//     username: String,
-//     password: String,
-// ) -> Result<Json<PasskeyRegistrationOptions>, rusqlite::Error> {
-//     let passwords = Passwords::new(db);
-//     passwords
-//         .update_user_password(userid.clone(), password)
-//         .await
-//         .unwrap();
-//     Ok(Json( {
-//         id: userid.clone(),
-//         username: username,
-//     }))
-// }
+pub async fn login(
+    Extension(app): Extension<AppState>,
+    mut session: WritableSession,
+    Json(req): Json<Login>,
+) -> Result<(StatusCode, Html<String>), ErrorResponse> {
+    // check that username and password are present
+    if (req.username == "") && (req.password == "") {
+        debug!("login attempt error, empty username or password");
+        return Err((
+            StatusCode::BAD_REQUEST,
+            format!("Username and password are required"),
+        )
+            .into());
+    }
+
+    // validate password
+    let uuid =
+        match models::passwords::validate_password(&app.db, &req.username, &req.password).await {
+            Ok(uuid) => uuid,
+            Err(e) => return Err(handle_error("Error validating password", e)),
+        };
+
+    // create session
+    let auth_state = AuthState {
+        username: req.username,
+        userid: uuid,
+    };
+    if let Err(e) = session.insert("auth_state", auth_state) {
+        return Err(handle_error(
+            "Error creating session",
+            Errors::SessionError(e),
+        ));
+    }
+    // return tera login success template
+    match views::login_success(app.templates) {
+        Ok(res) => Ok((StatusCode::ACCEPTED, res)),
+        Err(e) => Err(handle_error("Error rendering login template", e)),
+    }
+}
