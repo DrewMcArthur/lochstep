@@ -11,7 +11,10 @@ use webauthn_rs::prelude::{
     CreationChallengeResponse, PasskeyRegistration, RegisterPublicKeyCredential,
 };
 
-use crate::{errors::Errors, handle_error, models, state::AppState, views, Error};
+use crate::{
+    constants::session_keys::AUTH_STATE, errors::Errors, handle_error, models, state::AppState,
+    views, Error,
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SessionRegistrationState {
@@ -209,7 +212,7 @@ pub(crate) async fn create_password_registration(
     Json(req): Json<Login>,
 ) -> Result<(StatusCode, String), ErrorResponse> {
     debug!("creating password registration");
-    session.remove("auth_state");
+    session.remove(AUTH_STATE);
     // check if user exists in db, if so login
     // add user/pw to db
     if let Err(e) =
@@ -247,7 +250,7 @@ pub async fn login(
         username: req.username,
         userid: uuid,
     };
-    if let Err(e) = session.insert("auth_state", auth_state) {
+    if let Err(e) = session.insert(AUTH_STATE, auth_state) {
         return Err(handle_error(
             "Error creating session",
             Errors::SessionError(e),

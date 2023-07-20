@@ -19,6 +19,7 @@ use tower_http::services::ServeDir;
 
 use crate::state::{get_app_port, init_webauthn};
 
+mod constants;
 mod controllers;
 mod errors;
 mod models;
@@ -175,7 +176,7 @@ async fn init_db_client() -> Result<libsql_client::Client, Error> {
 
 fn init_logger() -> Result<(), log::SetLoggerError> {
     SimpleLogger::new()
-        .with_level(log::LevelFilter::Info)
+        .with_level(log::LevelFilter::Debug)
         .with_module_level("hyper", log::LevelFilter::Info)
         .with_module_level("h2", log::LevelFilter::Info)
         .with_module_level("rustls", log::LevelFilter::Info)
