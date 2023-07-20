@@ -8,7 +8,7 @@ pub async fn update_user_password(
     password: String,
 ) -> Result<(), crate::Error> {
     let stmt = format!(
-        "update users set password = {} where id = {};",
+        "update users set password = \"{}\" where id = \"{}\";",
         password, userid
     );
     db.execute(stmt)
@@ -19,7 +19,7 @@ pub async fn update_user_password(
 
 pub async fn add_key(db: &Client, uuid: Uuid, key: Passkey) -> Result<(), crate::Error> {
     let stmt = format!(
-        "INSERT INTO keys (userid, pubkey) VALUES ({}, {})",
+        "INSERT INTO keys (userid, pubkey) VALUES (\"{}\", \"{}\");",
         uuid,
         serde_json::to_string(&key).expect("error serializing PassKey json")
     );
