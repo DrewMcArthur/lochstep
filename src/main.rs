@@ -16,7 +16,7 @@ use std::{
 use tera::Tera;
 use tower_http::services::ServeDir;
 
-use crate::state::init_webauthn;
+use crate::state::{get_app_port, init_webauthn};
 
 mod controllers;
 mod models;
@@ -55,7 +55,7 @@ async fn main() {
         .await
         .expect("error initializing router");
 
-    let port = env::var("PORT").unwrap_or("8080".to_string());
+    let port = get_app_port();
     serve(router, port)
         .await
         .expect("error serving router to port");

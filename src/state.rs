@@ -26,7 +26,7 @@ pub fn init_webauthn() -> Result<Webauthn, Error> {
     let rp_id = "lochstep.mcarthur.in";
     // Url containing the effective domain name
     // MUST include the port number!
-    let rp_origin = match Url::parse(format!("https://{}:{}", rp_id, get_app_port()).as_str()) {
+    let rp_origin = match Url::parse(format!("https://{}", rp_id).as_str()) {
         Ok(url) => url,
         Err(e) => return Err(Box::new(e)),
     };
@@ -39,7 +39,12 @@ pub fn init_webauthn() -> Result<Webauthn, Error> {
     // Now, with the builder you can define other options.
     // Set a "nice" relying party name. Has no security properties and
     // may be changed in the future.
-    let builder = builder.rp_name("Axum Webauthn-rs");
+    let builder = builder
+        .rp_name("Lochstep")
+        .allow_any_port(true)
+        .append_allowed_origin(&Url::parse("https://lochstep.mcarthur.in").unwrap())
+        .append_allowed_origin(&Url::parse("https://lochstep.drewmca.dev").unwrap())
+        .append_allowed_origin(&Url::parse("http://localhost").unwrap());
 
     // Consume the builder and create our webauthn instance.
     let webauthn = match builder.build() {

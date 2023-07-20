@@ -182,7 +182,7 @@ pub async fn create_passkey_registration(
             StatusCode::OK
         }
         Err(e) => {
-            log::debug!("challenge_register -> {:?}", e);
+            log::debug!("error finalizing registrationg: {:?}", e);
             return Err((
                 StatusCode::BAD_REQUEST,
                 format!("error finalizing registration: {}", e),
