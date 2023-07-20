@@ -64,17 +64,15 @@ async fn main() {
         .expect("error serving router to port");
 }
 
-async fn init_router(db_client: libsql_client::Client, ui_dir: &PathBuf) -> Result<Router, Error> {
+async fn init_router(db_client: libsql_client::Client, ui_dir: &Path) -> Result<Router, Error> {
     info!("intializing appstate");
-    let templates: Tera = match init_templates(&ui_dir) {
+    let templates: Tera = match init_templates(ui_dir) {
         Ok(templates) => templates,
         Err(e) => return Err(e),
     };
     let static_dir: PathBuf = ui_dir.join("static");
 
-    if let Err(e) = init_db(&db_client).await {
-        return Err(e);
-    }
+    init_db(&db_client).await?;
 
     let state: AppState = match init_webauthn() {
         Ok(web_authn) => AppState::new(web_authn, db_client, templates),
@@ -147,7 +145,7 @@ fn init_session_layer() -> SessionLayer<MemoryStore> {
         .with_secure(true) // TODO: set this to true iff prod
 }
 
-fn init_templates(ui_dir: &PathBuf) -> Result<Tera, Error> {
+fn init_templates(ui_dir: &Path) -> Result<Tera, Error> {
     info!("initializing templates...");
     let templates_dir = ui_dir.join("templates");
     let templates_pattern = format!("{}/**/*.html", templates_dir.display());
@@ -170,7 +168,7 @@ async fn init_db_client() -> Result<libsql_client::Client, Error> {
 
     match libsql_client::Client::from_config(config).await {
         Ok(client) => Ok(client),
-        Err(e) => Err(format!("error initializing db client: {}", e.to_string()).into()),
+        Err(e) => Err(format!("error initializing db client: {}", e).into()),
     }
 }
 
@@ -195,7 +193,7 @@ async fn serve(router: Router, port: String) -> Result<(), Error> {
 }
 
 pub fn handle_error(err_msg: &str, e: Errors) -> ErrorResponse {
-    let err_msg = format!("{}: {}", err_msg, e.to_string());
+    let err_msg = format!("{}: {}", err_msg, e);
     error!("{}", err_msg);
-    return (StatusCode::INTERNAL_SERVER_ERROR, err_msg).into();
+    (StatusCode::INTERNAL_SERVER_ERROR, err_msg).into()
 }

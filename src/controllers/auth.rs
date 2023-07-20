@@ -119,7 +119,7 @@ async fn generate_passkey_registration_challenge(
     let res =
         match app
             .webauthn
-            .start_passkey_registration(userid.clone(), &username, &username, None)
+            .start_passkey_registration(*userid, username, username, None)
         {
             Ok((ccr, reg_state)) => {
                 // Note that due to the session store in use being a server side memory store, this is
@@ -161,7 +161,7 @@ pub async fn create_passkey_registration(
         None => {
             return Err((
                 StatusCode::BAD_REQUEST,
-                format!("Credentials were not persisted."),
+                "Credentials were not persisted.".to_string(),
             )
                 .into())
         }
@@ -229,11 +229,11 @@ pub async fn login(
     Json(req): Json<Login>,
 ) -> Result<(StatusCode, Html<String>), ErrorResponse> {
     // check that username and password are present
-    if (req.username == "") && (req.password == "") {
+    if (req.username.is_empty()) && (req.password.is_empty()) {
         debug!("login attempt error, empty username or password");
         return Err((
             StatusCode::BAD_REQUEST,
-            format!("Username and password are required"),
+            "Username and password are required".to_string(),
         )
             .into());
     }

@@ -83,9 +83,9 @@ pub(crate) async fn validate_password(
         .first()
         .ok_or(Errors::DbNoHashMatch(username.to_string()))?
         .try_column("id")
-        .map_err(|e| Errors::DbStoredUuidParsingError(e))?;
+        .map_err(Errors::DbStoredUuidParsingError)?;
 
-    let id = Uuid::parse_str(id).map_err(|e| Errors::UuidParsingError(e))?;
+    let id = Uuid::parse_str(id).map_err(Errors::UuidParsingError)?;
 
     Ok(id)
 }
