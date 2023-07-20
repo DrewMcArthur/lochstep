@@ -1,8 +1,10 @@
 use axum::{
+    response::ErrorResponse,
     routing::{get, post},
     Extension, Router,
 };
 use axum_sessions::{async_session::MemoryStore, SameSite, SessionLayer};
+use hyper::StatusCode;
 use log::{debug, info};
 use rand::prelude::*;
 use simple_logger::SimpleLogger;
@@ -13,6 +15,8 @@ use std::{
 };
 use tera::Tera;
 use tower_http::services::ServeDir;
+
+use crate::state::init_webauthn;
 
 mod controllers;
 mod models;
@@ -35,12 +39,41 @@ type Error = Box<dyn std::error::Error>;
 //     Ok(init_router(turso, &ui_dir).await.unwrap().into())
 // }
 
-async fn init_router(turso: libsql_client::Client, ui_dir: &PathBuf) -> Result<Router, Error> {
+#[tokio::main]
+async fn main() {
+    dotenv::dotenv().ok();
+    init_logger();
+    let ui_dir = Path::new("src").join("ui");
+    info!("ui dir exists? {}", ui_dir.exists());
+    let db_client = init_db_client().await.unwrap();
+    let router = init_router(db_client, &ui_dir).await.unwrap();
+    let port = env::var("PORT").unwrap_or("8080".to_string());
+    serve(router, port).await.unwrap();
+}
+
+async fn init_router(
+    turso: libsql_client::Client,
+    ui_dir: &PathBuf,
+) -> Result<Router, ErrorResponse> {
     info!("intializing appstate");
     let templates = init_templates(&ui_dir).unwrap();
     let static_dir = ui_dir.join("static");
-    init_db(&turso).await.expect("DB initialization failed :(");
-    let state = AppState::new(turso, templates);
+
+    match init_db(&turso).await {
+        Ok(_) => (),
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("error initializing DB: {}", e.to_string()),
+            )
+                .into())
+        }
+    }
+
+    let state = match init_webauthn() {
+        Ok(webauthn) => AppState::new(webauthn, turso, templates),
+        Err(e) => return Err(e),
+    };
     info!("done intializing appstate");
 
     info!("intializing router");
@@ -121,18 +154,6 @@ fn init_templates(ui_dir: &PathBuf) -> Result<Tera, Error> {
         .expect("Error building tera inheritance chains");
     info!("done initializing templates.");
     Ok(templates)
-}
-
-#[tokio::main]
-async fn main() {
-    dotenv::dotenv().ok();
-    init_logger();
-    let ui_dir = Path::new("src").join("ui");
-    info!("ui dir exists? {}", ui_dir.exists());
-    let db_client = init_db_client().await.unwrap();
-    let router = init_router(db_client, &ui_dir).await.unwrap();
-    let port = env::var("PORT").unwrap_or("8080".to_string());
-    serve(router, port).await.unwrap();
 }
 
 async fn init_db_client() -> Result<libsql_client::Client, Error> {

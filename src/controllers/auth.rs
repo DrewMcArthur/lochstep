@@ -1,13 +1,14 @@
-use axum::{debug_handler, Extension, Json};
+use axum::{response::ErrorResponse, Extension, Json};
 use axum_sessions::extractors::WritableSession;
 use hyper::StatusCode;
+use log::debug;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use webauthn_rs::prelude::{
-    CreationChallengeResponse, PasskeyRegistration, RegisterPublicKeyCredential, WebauthnError,
+    CreationChallengeResponse, PasskeyRegistration, RegisterPublicKeyCredential,
 };
 
-use crate::{models, state::AppState};
+use crate::{models, state::AppState, Error};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SessionRegistrationState {
@@ -38,19 +39,27 @@ pub async fn get_passkey_registration_options(
     Extension(app): Extension<AppState>,
     mut session: WritableSession,
     Json(req): Json<PasskeyRegistrationOptionsRequest>,
-) -> (StatusCode, Json<Option<CreationChallengeResponse>>) {
+) -> Result<(StatusCode, Json<CreationChallengeResponse>), ErrorResponse> {
     let userid = match models::users::create_user(&app.db, &req.username).await {
         Ok(id) => id,
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(None)),
+        Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into()),
     };
 
     let challenge =
-        generate_passkey_registration_challenge(&app, &mut session, &userid, &req.username)
+        match generate_passkey_registration_challenge(&app, &mut session, &userid, &req.username)
             .await
-            .map_err(|e| e.to_string())
-            .expect("error generating passkey challenge");
+        {
+            Ok(challenge) => challenge,
+            Err(e) => {
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("error generating challenge: {}", e),
+                )
+                    .into())
+            }
+        };
 
-    (StatusCode::OK, Json(Some(challenge)))
+    Ok((StatusCode::OK, Json(challenge)))
 }
 
 async fn generate_passkey_registration_challenge(
@@ -58,7 +67,7 @@ async fn generate_passkey_registration_challenge(
     session: &mut WritableSession,
     userid: &Uuid,
     username: &str,
-) -> Result<CreationChallengeResponse, WebauthnError> {
+) -> Result<CreationChallengeResponse, Error> {
     // log::info!("Start register");
     // We get the username from the URL, but you could get this via form submission or
     // some other process. In some parts of Webauthn, you could also use this as a "display name"
@@ -118,35 +127,40 @@ async fn generate_passkey_registration_challenge(
                 ccr
             }
             Err(e) => {
-                log::debug!("challenge_register -> {:?}", e);
-                return Err(e);
+                let err_msg = format!(
+                    "error generating registration challenge_register -> {:?}",
+                    e
+                );
+                debug!("{}", err_msg);
+                return Err(Box::new(e));
             }
         };
 
     Ok(res)
 }
 
-#[debug_handler]
 pub async fn create_passkey_registration(
     Extension(app): Extension<AppState>,
     mut session: WritableSession,
     Json(reg): Json<RegisterPublicKeyCredential>,
-) -> (StatusCode, String) {
-    let session_res = session
-        .get("reg_state")
-        .ok_or(WebauthnError::CredentialPersistenceError);
-
-    if let Err(e) = session_res {
-        log::debug!("challenge_register -> {:?}", e);
-        return (StatusCode::BAD_REQUEST, e.to_string());
-    }
-
-    let (username, user_unique_id, reg_state): (String, Uuid, PasskeyRegistration) =
-        session_res.expect("error retrieving session registration state");
+) -> Result<(), ErrorResponse> {
+    let session_res: SessionRegistrationState = match session.get("reg_state") {
+        Some(state) => state,
+        None => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!("Credentials were not persisted."),
+            )
+                .into())
+        }
+    };
 
     session.remove("reg_state");
 
-    let res = match app.webauthn.finish_passkey_registration(&reg, &reg_state) {
+    match app
+        .webauthn
+        .finish_passkey_registration(&reg, &session_res.reg_state)
+    {
         Ok(sk) => {
             //TODO: This is where we would store the credential in a db, or persist them in some other way.
             // users_guard
@@ -156,23 +170,28 @@ pub async fn create_passkey_registration(
             //     .or_insert_with(|| vec![sk.clone()]);
 
             // save key to db
-            if let Err(e) = models::keys::add_key(&app.db, user_unique_id, sk).await {
-                return (
+            if let Err(e) = models::keys::add_key(&app.db, session_res.userid, sk).await {
+                return Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     format!("error saving passkey to db: {}", e),
-                );
+                )
+                    .into());
             };
 
-            log::info!("saved new key for user {:?}", username);
+            log::info!("saved new key for user {:?}", session_res.username);
             StatusCode::OK
         }
         Err(e) => {
             log::debug!("challenge_register -> {:?}", e);
-            StatusCode::BAD_REQUEST
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!("error finalizing registration: {}", e),
+            )
+                .into());
         }
     };
 
-    (res, "OK".to_string())
+    Ok(())
 }
 
 pub(crate) async fn create_password_registration() {
