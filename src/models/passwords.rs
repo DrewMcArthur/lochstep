@@ -6,36 +6,8 @@ use uuid::Uuid;
 
 use crate::errors::Errors;
 
-pub async fn create_user_with_password(
-    db: &Client,
-    username: &str,
-    password: &str,
-) -> Result<(), Errors> {
-    let salt = SaltString::generate(&mut OsRng);
-    let hash = match get_hash(password, &salt) {
-        Ok(h) => h,
-        Err(e) => return Err(e),
-    };
-
-    let uuid = Uuid::new_v4();
-    let stmt = libsql_client::Statement::with_args(
-        "INSERT INTO users (id, username, hash, salt) VALUES (?,?,?,?);",
-        args!(
-            uuid.to_string(),
-            username,
-            hash.to_string(),
-            salt.to_string()
-        ),
-    );
-
-    debug!("stmt: {}", stmt);
-    match db.execute(stmt).await {
-        Ok(_) => Ok(()),
-        Err(e) => Err(Errors::DbInsertError(e)),
-    }
-}
-
 // returns UUID if valid, error otherwise
+// TODO: clean this up with map/map_err etc
 pub(crate) async fn validate_password(
     db: &Client,
     username: &str,
@@ -90,9 +62,16 @@ pub(crate) async fn validate_password(
     Ok(id)
 }
 
-fn get_hash<'a>(pw: &str, salt: &'a SaltString) -> Result<argon2::PasswordHash<'a>, Errors> {
+pub(super) fn get_hash<'a>(
+    pw: &str,
+    salt: &'a SaltString,
+) -> Result<argon2::PasswordHash<'a>, Errors> {
     match argon2::Argon2::default().hash_password(pw.as_bytes(), salt) {
         Ok(h) => Ok(h),
         Err(e) => Err(Errors::GetHashError(e)),
     }
+}
+
+pub(super) fn generate_salt() -> SaltString {
+    SaltString::generate(&mut OsRng)
 }

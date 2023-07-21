@@ -215,9 +215,9 @@ pub(crate) async fn create_password_registration(
     // check if user exists in db, if so login
     // add user/pw to db
     if let Err(e) =
-        models::passwords::create_user_with_password(&app.db, &req.username, &req.password).await
+        models::users::create_user_with_password(&app.db, &req.username, &req.password).await
     {
-        return Err(handle_error("Error creating password", e));
+        return Err(handle_error("Error creating user", e));
     }
     Ok((StatusCode::ACCEPTED, "Success! Please login.".to_string()))
 }
