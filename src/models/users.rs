@@ -50,7 +50,7 @@ pub async fn create_user_with_password(
     debug!("stmt: {}", stmt);
     db.execute(stmt)
         .await
-        .map_err(|e| Errors::DbInsertError(e))
+        .map_err(Errors::DbInsertError)
         .map(|_| ())
 }
 
@@ -59,7 +59,7 @@ async fn user_exists(db: &Client, username: &str) -> Result<bool, Errors> {
     debug!("stmt: {}", stmt);
     db.execute(stmt)
         .await
-        .map_err(|e| Errors::DbFetchError(e))
+        .map_err(Errors::DbFetchError)
         .map(|rs| rs.rows.len())
         .map(|num_users| num_users > 0)
 }
