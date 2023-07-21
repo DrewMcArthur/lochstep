@@ -14,6 +14,7 @@ pub enum Errors {
     LoginErrorUsernameOrPasswordMissing,
     RenderingError(String, tera::Error),
     SessionError(serde_json::Error),
+    UserAlreadyExists(String),
     Default,
 }
 
