@@ -3,10 +3,10 @@
     const countdownElement = htmx.find(".countdown")
     let secondsLeft = 5
     setInterval(() => {
-        if (secondsLeft <= 0) {
+        if (secondsLeft <= 1) {
             console.log("redirecting now!")
             window.location.href = "/"
+            countdownElement.innerHTML = --secondsLeft
         }
-        countdownElement.innerHTML = --secondsLeft
     }, 1000)
 </script>

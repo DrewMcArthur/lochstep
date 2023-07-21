@@ -11,8 +11,7 @@ pub async fn create_user(
     debug!("creating user: {}, {}", id, username);
     let stmt = format!(
         "INSERT INTO users (id, username) VALUES (\"{}\", \"{}\");",
-        id,
-        username
+        id, username
     );
     debug!("stmt: {}", stmt);
 
