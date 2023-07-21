@@ -72,7 +72,7 @@ async fn init_router(db_client: libsql_client::Client, ui_dir: &Path) -> Result<
     };
     let static_dir: PathBuf = ui_dir.join("static");
 
-    init_db(&db_client).await?;
+    models::init_db(&db_client).await?;
 
     let state: AppState = match init_webauthn() {
         Ok(web_authn) => AppState::new(web_authn, db_client, templates),
@@ -102,34 +102,6 @@ async fn init_router(db_client: libsql_client::Client, ui_dir: &Path) -> Result<
 
     info!("done initializing router.");
     Ok(router)
-}
-
-async fn init_db(client: &libsql_client::Client) -> Result<(), Error> {
-    info!("initializing db");
-    let create_users_table = "CREATE TABLE IF NOT EXISTS users (
-            id TEXT PRIMARY KEY,
-            username TEXT,
-            hash TEXT,
-            salt TEXT
-          );";
-    let create_keys_table = "CREATE TABLE IF NOT EXISTS keys (
-            id INT PRIMARY KEY,
-            userid TEXT,
-            key TEXT
-          );";
-
-    client
-        .execute(create_users_table)
-        .await
-        .expect("error creating users table");
-
-    client
-        .execute(create_keys_table)
-        .await
-        .expect("error creating keys table");
-
-    info!("done initializing db");
-    Ok(())
 }
 
 fn init_session_layer() -> SessionLayer<MemoryStore> {
