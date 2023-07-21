@@ -116,37 +116,36 @@ async fn generate_passkey_registration_challenge(
     //         .map(|keys| keys.iter().map(|sk| sk.cred_id().clone()).collect())
     // };
 
-    let res =
-        match app
-            .webauthn
-            .start_passkey_registration(*userid, username, username, None)
-        {
-            Ok((ccr, reg_state)) => {
-                // Note that due to the session store in use being a server side memory store, this is
-                // safe to store the reg_state into the session since it is not client controlled and
-                // not open to replay attacks. If this was a cookie store, this would be UNSAFE.
-                session
-                    .insert(
-                        "reg_state",
-                        SessionRegistrationState {
-                            username: username.to_string(),
-                            userid: *userid,
-                            reg_state,
-                        },
-                    )
-                    .expect("Failed to insert");
-                log::info!("Registration Successful!");
-                ccr
-            }
-            Err(e) => {
-                let err_msg = format!(
-                    "error generating registration challenge_register -> {:?}",
-                    e
-                );
-                debug!("{}", err_msg);
-                return Err(Box::new(e));
-            }
-        };
+    let res = match app
+        .webauthn
+        .start_passkey_registration(*userid, username, username, None)
+    {
+        Ok((ccr, reg_state)) => {
+            // Note that due to the session store in use being a server side memory store, this is
+            // safe to store the reg_state into the session since it is not client controlled and
+            // not open to replay attacks. If this was a cookie store, this would be UNSAFE.
+            session
+                .insert(
+                    "reg_state",
+                    SessionRegistrationState {
+                        username: username.to_string(),
+                        userid: *userid,
+                        reg_state,
+                    },
+                )
+                .expect("Failed to insert");
+            log::info!("Registration Successful!");
+            ccr
+        }
+        Err(e) => {
+            let err_msg = format!(
+                "error generating registration challenge_register -> {:?}",
+                e
+            );
+            debug!("{}", err_msg);
+            return Err(Box::new(e));
+        }
+    };
 
     Ok(res)
 }
