@@ -9,29 +9,39 @@ version = "0.1.0"
 anyhow = "1.0.72"
 argon2 = "0.5.1"
 axum = {version = "0.6.18", features = ["json", "headers", "http2", "macros"]}
-axum-login = {git = "https://github.com/DrewMcArthur/axum-login"}
 axum-sessions = "0.5.0"
 dotenv = "0.15.0"
 glob = "0.3.1"
 http = "0.2.9"
 hyper = "0.14.27"
 lazy_static = "1.4.0"
-libsql-client = { version = "0.31.8", features = ["bytes"] }
 log = "0.4.19"
 rand = "0.8.5"
 # rusqlite = {version = ">=0.20.0", features = ["uuid"]}
 serde = {version = "1.0.171", features = ["derive"]}
 serde_json = "1.0.102"
-shuttle-axum = "0.21.0"
-shuttle-runtime = "0.21.0"
-shuttle-secrets = "0.21.0"
-shuttle-service = "0.21.0"
-shuttle-static-folder = "0.21.0"
-shuttle-turso = "0.21.0"
+# shuttle-axum = "0.21.0"
+# shuttle-runtime = "0.21.0"
+# shuttle-secrets = "0.21.0"
+# shuttle-service = "0.21.0"
+# shuttle-static-folder = "0.21.0"
+# shuttle-turso = "0.21.0"
 simple_logger = "4.2.0"
 tera = "1"
 tokio = {version = "1.29.1", features = ["macros", "rt-multi-thread"]}
 tower-http = {version = "0.4.1", features = ["fs"]}
 url = "2.4.0"
 uuid = {version = "1.4.0", features = ["serde"]}
-webauthn-rs = {version = "0.4.8", features = ["danger-allow-state-serialisation"]}
+webauthn-rs = { version = "0.4.8", features = ["danger-credential-internals", "danger-allow-state-serialisation"] }
+# webauthn-rs = {version = "0.4.8", features = ["danger-allow-state-serialisation"]}
+
+[dependencies.axum-login-libsql]
+git = "https://github.com/DrewMcArthur/axum-login"
+branch = "impl/libsql_client"
+
+[dependencies.libsql-client]
+# version = "0.31.8"
+default-features = false
+features = ["bytes", "http", "reqwest", "reqwest_backend", "local_backend"]
+branch = "chore/dep-up"
+git = "https://github.com/Suyashtnt/libsql-client-rs"
