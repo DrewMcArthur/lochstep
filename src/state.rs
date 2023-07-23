@@ -16,10 +16,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(
-        db_client: libsql_client::Client, 
-        templates: Tera
-    ) -> Self {
+    pub fn new(db_client: libsql_client::Client, templates: Tera) -> Self {
         Self {
             #[cfg(passkey)]
             webauthn: Arc::new(init_webauthn()),

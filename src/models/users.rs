@@ -1,9 +1,9 @@
 use argon2::{password_hash::SaltString, PasswordHash};
 use libsql_client::{args, Client, Statement};
 use log::debug;
-use uuid::Uuid;
 #[cfg(passkey)]
 use std::sync::Arc;
+use uuid::Uuid;
 
 use crate::{errors::Errors, models::passwords};
 

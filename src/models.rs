@@ -3,10 +3,10 @@ use log::info;
 use crate::Error;
 
 pub mod db;
-pub mod passwords;
-pub mod users;
 #[cfg(passkey)]
 pub mod keys;
+pub mod passwords;
+pub mod users;
 
 pub(crate) async fn init_db(client: &libsql_client::Client) -> Result<(), Error> {
     info!("initializing db");
