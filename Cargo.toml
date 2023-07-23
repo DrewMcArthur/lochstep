@@ -1,9 +1,8 @@
 [package]
 edition = "2021"
 name = "lochstep"
+publish = false
 version = "0.1.0"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0.72"
@@ -17,31 +16,22 @@ hyper = "0.14.27"
 lazy_static = "1.4.0"
 log = "0.4.19"
 rand = "0.8.5"
-# rusqlite = {version = ">=0.20.0", features = ["uuid"]}
 serde = {version = "1.0.171", features = ["derive"]}
 serde_json = "1.0.102"
-# shuttle-axum = "0.21.0"
-# shuttle-runtime = "0.21.0"
-# shuttle-secrets = "0.21.0"
-# shuttle-service = "0.21.0"
-# shuttle-static-folder = "0.21.0"
-# shuttle-turso = "0.21.0"
 simple_logger = "4.2.0"
 tera = "1"
 tokio = {version = "1.29.1", features = ["macros", "rt-multi-thread"]}
 tower-http = {version = "0.4.1", features = ["fs"]}
 url = "2.4.0"
 uuid = {version = "1.4.0", features = ["serde"]}
-webauthn-rs = { version = "0.4.8", features = ["danger-credential-internals", "danger-allow-state-serialisation"] }
-# webauthn-rs = {version = "0.4.8", features = ["danger-allow-state-serialisation"]}
+webauthn-rs = {version = "0.4.8", features = ["danger-credential-internals", "danger-allow-state-serialisation"]}
 
 [dependencies.axum-login-libsql]
-git = "https://github.com/DrewMcArthur/axum-login"
 branch = "impl/libsql_client"
+git = "https://github.com/DrewMcArthur/axum-login"
 
 [dependencies.libsql-client]
-# version = "0.31.8"
+branch = "chore/dep-up"
 default-features = false
 features = ["bytes", "http", "reqwest", "reqwest_backend", "local_backend"]
-branch = "chore/dep-up"
 git = "https://github.com/Suyashtnt/libsql-client-rs"
