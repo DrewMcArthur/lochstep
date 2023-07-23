@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use axum::Extension;
 use http::{Method, Request};
 use hyper::Body;
+use libsql_client::Client;
 use log::info;
 use tera::Tera;
 use tower::ServiceExt;
@@ -11,10 +12,10 @@ use tower_http::services::ServeDir;
 use crate::{
     config::{Config, Stage},
     controllers::auth::Login,
-    init_db_client, init_session_layer, init_templates, models,
+    init_session_layer, init_templates, models,
     routes::init_router,
     state::AppState,
-    Error,
+    Error, errors::Errors,
 };
 
 struct TestRoute {
@@ -56,6 +57,10 @@ fn test_config() -> Config {
     }
 }
 
+async fn init_test_db_client() -> Result<Client, Errors> {
+    Client::in_memory().map_err(Errors::DbInitializationError)
+}
+
 #[tokio::test]
 async fn happy_path() -> Result<(), Error> {
     let config = test_config();
@@ -68,7 +73,7 @@ async fn happy_path() -> Result<(), Error> {
     };
     let static_dir: PathBuf = ui_dir.join("static");
 
-    let db_client = init_db_client(&config).await.unwrap();
+    let db_client = init_test_db_client().await.unwrap();
     models::init_db(&db_client).await.unwrap();
 
     let state: AppState = AppState::new(db_client, templates);

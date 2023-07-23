@@ -11,6 +11,7 @@ pub enum Errors {
     DbNoHashMatch(String),
     DbInsertError(anyhow::Error),
     DbMissingUuid(String),
+    DbInitializationError(anyhow::Error),
     LoginErrorUsernameOrPasswordMissing,
     RenderingError(String, tera::Error),
     SessionError(serde_json::Error),
