@@ -12,10 +12,11 @@ use tower_http::services::ServeDir;
 use crate::{
     config::{Config, Stage},
     controllers::auth::Login,
+    errors::Errors,
     init_session_layer, init_templates, models,
     routes::init_router,
     state::AppState,
-    Error, errors::Errors,
+    Error,
 };
 
 fn get_test_requests() -> Vec<Request<Body>> {
@@ -33,7 +34,8 @@ fn get_test_requests() -> Vec<Request<Body>> {
                 serde_json::to_string(&Login {
                     username: "test".to_string(),
                     password: "test".to_string(),
-                }).unwrap()
+                })
+                .unwrap(),
             ))
             .unwrap(),
         Request::builder()
@@ -44,7 +46,8 @@ fn get_test_requests() -> Vec<Request<Body>> {
                 serde_json::to_string(&Login {
                     username: "test".to_string(),
                     password: "test".to_string(),
-                }).unwrap()
+                })
+                .unwrap(),
             ))
             .unwrap(),
     ]
