@@ -18,33 +18,35 @@ use crate::{
     Error, errors::Errors,
 };
 
-struct TestRoute {
-    method: Method,
-    uri: String,
-    body: Body,
-    content_type: String,
-}
-
-fn get_test_routes() -> Vec<TestRoute> {
+fn get_test_requests() -> Vec<Request<Body>> {
     vec![
-        TestRoute {
-            method: Method::GET,
-            uri: "/".to_string(),
-            body: Body::empty(),
-            content_type: "text/html; charset=utf-8".to_string(),
-        },
-        TestRoute {
-            method: Method::POST,
-            uri: "/auth/password/register".to_string(),
-            body: Body::from(
+        Request::builder()
+            .method(Method::GET)
+            .uri("/")
+            .body(Body::empty())
+            .unwrap(),
+        Request::builder()
+            .method(Method::POST)
+            .uri("/auth/password/register")
+            .header("content-type", "application/json")
+            .body(Body::from(
                 serde_json::to_string(&Login {
                     username: "test".to_string(),
                     password: "test".to_string(),
-                })
-                .unwrap(),
-            ),
-            content_type: "application/json".to_string(),
-        },
+                }).unwrap()
+            ))
+            .unwrap(),
+        Request::builder()
+            .method(Method::POST)
+            .uri("/auth/password/login")
+            .header("content-type", "application/json")
+            .body(Body::from(
+                serde_json::to_string(&Login {
+                    username: "test".to_string(),
+                    password: "test".to_string(),
+                }).unwrap()
+            ))
+            .unwrap(),
     ]
 }
 
@@ -85,18 +87,13 @@ async fn happy_path() -> Result<(), Error> {
         .layer(init_session_layer(&config))
         .layer(Extension(state));
 
-    for route in get_test_routes() {
-        let req = Request::builder()
-            .method(route.method)
-            .header("Content-Type", route.content_type)
-            .uri(&route.uri)
-            .body(route.body)
-            .unwrap();
+    for req in get_test_requests() {
+        let path = req.uri().path().to_string();
         let response = router.clone().oneshot(req).await.unwrap();
         assert!(
             response.status().is_success(),
             "route: {}, response status: {}",
-            route.uri,
+            path,
             response.status()
         );
     }
