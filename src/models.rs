@@ -3,6 +3,7 @@ use log::info;
 use crate::Error;
 
 pub mod db;
+#[cfg(passkey)]
 pub mod keys;
 pub mod passwords;
 pub mod users;

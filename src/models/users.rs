@@ -1,18 +1,20 @@
 use argon2::{password_hash::SaltString, PasswordHash};
 use libsql_client::{args, Client, Statement};
 use log::debug;
+#[cfg(passkey)]
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::{errors::Errors, models::passwords};
 
+#[cfg(passkey)]
 pub async fn create_user(
     client: &Arc<libsql_client::Client>,
     username: &str,
 ) -> Result<Uuid, crate::Error> {
-    let id = Uuid::new_v4();
+    let id: Uuid = Uuid::new_v4();
     debug!("creating user: {}, {}", id, username);
-    let stmt = format!(
+    let stmt: String = format!(
         "INSERT INTO users (id, username) VALUES (\"{}\", \"{}\");",
         id, username
     );
