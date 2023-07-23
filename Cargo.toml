@@ -4,6 +4,10 @@ name = "lochstep"
 publish = false
 version = "0.1.0"
 
+[features]
+default = []
+passkey = ["dep:webauthn-rs"]
+
 [dependencies]
 anyhow = "1.0.72"
 argon2 = "0.5.1"
@@ -23,8 +27,8 @@ tera = "1"
 tokio = {version = "1.29.1", features = ["macros", "rt-multi-thread"]}
 tower-http = {version = "0.4.1", features = ["fs"]}
 url = "2.4.0"
-uuid = {version = "1.4.0", features = ["serde"]}
-webauthn-rs = {version = "0.4.8", features = ["danger-credential-internals", "danger-allow-state-serialisation"]}
+uuid = { version = "1.4.0", features = ["serde", "v8", "v4"] }
+webauthn-rs = {version = "0.4.8", features = ["danger-credential-internals", "danger-allow-state-serialisation"], optional = true}
 
 [dependencies.axum-login-libsql]
 branch = "impl/libsql_client"
@@ -33,5 +37,5 @@ git = "https://github.com/DrewMcArthur/axum-login"
 [dependencies.libsql-client]
 branch = "chore/dep-up"
 default-features = false
-features = ["bytes", "http", "reqwest", "reqwest_backend", "local_backend"]
+features = ["bytes", "http", "reqwest", "reqwest_backend", "local_backend", "mapping_names_to_values_in_rows"]
 git = "https://github.com/Suyashtnt/libsql-client-rs"

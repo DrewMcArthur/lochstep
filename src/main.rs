@@ -1,8 +1,4 @@
-use axum::{
-    response::ErrorResponse,
-    routing::{get, post},
-    Extension, Router,
-};
+use axum::{response::ErrorResponse, routing::get, Extension, Router};
 use axum_sessions::{async_session::MemoryStore, SameSite, SessionLayer};
 use errors::Errors;
 use hyper::StatusCode;
@@ -17,7 +13,10 @@ use std::{
 use tera::Tera;
 use tower_http::services::ServeDir;
 
-use crate::state::{get_app_port, init_webauthn};
+use crate::state::get_app_port;
+
+#[cfg(passkey)]
+use crate::state::init_webauthn;
 
 mod constants;
 mod controllers;
@@ -74,28 +73,13 @@ async fn init_router(db_client: libsql_client::Client, ui_dir: &Path) -> Result<
 
     models::init_db(&db_client).await?;
 
-    let state: AppState = match init_webauthn() {
-        Ok(web_authn) => AppState::new(web_authn, db_client, templates),
-        Err(e) => return Err(e),
-    };
+    let state: AppState = AppState::new(db_client, templates);
     info!("done intializing appstate");
 
     info!("intializing router");
     let router = Router::new()
         .route("/", get(controllers::index))
-        .route(
-            "/auth/passkey/registration/options",
-            post(controllers::auth::get_passkey_registration_options),
-        )
-        .route(
-            "/auth/passkey/registration/create",
-            post(controllers::auth::create_passkey_registration),
-        )
-        .route(
-            "/auth/password/register",
-            post(controllers::auth::create_password_registration),
-        )
-        .route("/auth/password/login", post(controllers::auth::login))
+        .nest("/auth", controllers::auth::get_router())
         .nest_service("/static", ServeDir::new(static_dir))
         .layer(init_session_layer())
         .layer(Extension(state));

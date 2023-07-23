@@ -1,26 +1,35 @@
 use std::{env, sync::Arc};
 use tera::Tera;
+
+#[cfg(passkey)]
 use webauthn_rs::{prelude::Url, Webauthn, WebauthnBuilder};
 
+#[cfg(passkey)]
 use crate::Error;
 
 #[derive(Clone)]
 pub struct AppState {
+    #[cfg(passkey)]
     pub webauthn: Arc<Webauthn>,
     pub templates: Tera,
     pub db: Arc<libsql_client::Client>,
 }
 
 impl AppState {
-    pub fn new(web_authn: Webauthn, db_client: libsql_client::Client, templates: Tera) -> Self {
+    pub fn new(
+        db_client: libsql_client::Client, 
+        templates: Tera
+    ) -> Self {
         Self {
-            webauthn: Arc::new(web_authn),
+            #[cfg(passkey)]
+            webauthn: Arc::new(init_webauthn()),
             templates,
             db: Arc::new(db_client),
         }
     }
 }
 
+#[cfg(passkey)]
 pub fn init_webauthn() -> Result<Webauthn, Error> {
     // Effective domain name.
     let rp_id = "lochstep.mcarthur.in";
