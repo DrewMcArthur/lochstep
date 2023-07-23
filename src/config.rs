@@ -4,6 +4,7 @@ use std::{env, str::FromStr};
 /// the goal is to provide structure, so it's easier to know
 /// what variables are required, as well as centralize how they're provided
 use dotenv::dotenv;
+use log::warn;
 
 use crate::errors::Errors;
 
@@ -37,7 +38,9 @@ impl FromStr for Stage {
 
 impl Config {
     pub fn from_env() -> Self {
-        dotenv().expect("error loading dotenv");
+        if let Err(e) = dotenv() {
+            warn!("failed to load dotenv: {}", e);
+        }
         Config {
             db_url: env::var("DB_URL").expect("error loading env.DB_URL"),
 
