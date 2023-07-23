@@ -1,4 +1,4 @@
-use axum::{response::ErrorResponse, routing::get, Extension, Router};
+use axum::{response::ErrorResponse, Extension, Router};
 use axum_sessions::{async_session::MemoryStore, SameSite, SessionLayer};
 use errors::Errors;
 use hyper::StatusCode;
@@ -27,6 +27,7 @@ mod errors;
 mod models;
 mod state;
 mod views;
+mod routes;
 
 type Error = Box<dyn std::error::Error>;
 
@@ -45,7 +46,7 @@ type Error = Box<dyn std::error::Error>;
 // }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Error>{
     dotenv::dotenv().ok();
     init_logger().expect("error initializing logger");
 
@@ -56,39 +57,30 @@ async fn main() {
         .await
         .expect("error initializing db client");
 
-    let router = init_router(db_client, &ui_dir)
-        .await
-        .expect("error initializing router");
-
-    let port = get_app_port();
-    serve(router, port)
-        .await
-        .expect("error serving router to port");
-}
-
-async fn init_router(db_client: libsql_client::Client, ui_dir: &Path) -> Result<Router, Error> {
     info!("intializing appstate");
-    let templates: Tera = match init_templates(ui_dir) {
+    let templates: Tera = match init_templates(&ui_dir) {
         Ok(templates) => templates,
         Err(e) => return Err(e),
     };
     let static_dir: PathBuf = ui_dir.join("static");
 
-    models::init_db(&db_client).await?;
+    models::init_db(&db_client).await.unwrap();
 
     let state: AppState = AppState::new(db_client, templates);
     info!("done intializing appstate");
 
-    info!("intializing router");
-    let router = Router::new()
-        .route("/", get(controllers::index))
-        .nest("/auth", controllers::auth::get_router())
+    let router = routes::init_router()
+        .await
+        .expect("error initializing router")
         .nest_service("/static", ServeDir::new(static_dir))
         .layer(init_session_layer())
         .layer(Extension(state));
 
-    info!("done initializing router.");
-    Ok(router)
+    let port = get_app_port();
+    serve(router, port)
+        .await
+        .expect("error serving router to port");
+    Ok(())
 }
 
 fn init_session_layer() -> SessionLayer<MemoryStore> {

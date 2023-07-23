@@ -1,6 +1,6 @@
 use axum::{
     response::{ErrorResponse, Html},
-    Extension, Json, Router, routing::get,
+    Extension, Json,
 };
 use axum_sessions::extractors::WritableSession;
 use hyper::StatusCode;
@@ -24,20 +24,8 @@ pub struct AuthState {
 
 #[derive(Serialize, Deserialize)]
 pub struct Login {
-    username: String,
-    password: String,
-}
-
-pub(crate) fn get_router() -> Router {
-    let router = Router::new()
-    .route("/password/register", get(create_password_registration))
-    .route("/password/login", get(login));
-
-    #[cfg(passkey)]
-    router.nest("/passkey", passkey_auth::get_router());
-
-    #[cfg(not(passkey))]
-    router
+    pub(crate) username: String,
+    pub(crate) password: String,
 }
 
 pub(crate) async fn create_password_registration(

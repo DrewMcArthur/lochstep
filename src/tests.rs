@@ -1,40 +1,84 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
+use axum::Extension;
 use dotenv::dotenv;
 use http::{Method, Request};
 use hyper::Body;
+use log::info;
+use tera::Tera;
 use tower::ServiceExt;
+use tower_http::services::ServeDir;
 
-use crate::{init_db_client, init_router};
+use crate::{controllers::auth::Login, init_db_client, routes::init_router, init_session_layer, init_templates, models, state::AppState, Error};
 
 struct TestRoute {
     method: Method,
     uri: String,
     body: Body,
+    content_type: String,
 }
 
 fn get_test_routes() -> Vec<TestRoute> {
-    vec![TestRoute {
-        method: Method::GET,
-        uri: "/".to_string(),
-        body: Body::empty(),
-    }]
+    vec![
+        TestRoute {
+            method: Method::GET,
+            uri: "/".to_string(),
+            body: Body::empty(),
+            content_type: "text/html; charset=utf-8".to_string(),
+        },
+        TestRoute {
+            method: Method::POST,
+            uri: "/auth/password/register".to_string(),
+            body: Body::from(
+                serde_json::to_string(&Login {
+                    username: "test".to_string(),
+                    password: "test".to_string(),
+                })
+                .unwrap(),
+            ),
+            content_type: "application/json".to_string(),
+        },
+    ]
 }
 
 #[tokio::test]
-async fn happy_path() {
+async fn happy_path() -> Result<(), Error>{
     dotenv().unwrap();
     let ui_dir = Path::new("src").join("ui");
-    let db = init_db_client().await.unwrap();
-    let router = init_router(db, &ui_dir).await.unwrap();
+
+    info!("intializing appstate");
+    let templates: Tera = match init_templates(&ui_dir) {
+        Ok(templates) => templates,
+        Err(e) => return Err(e),
+    };
+    let static_dir: PathBuf = ui_dir.join("static");
+
+    let db_client = init_db_client().await.unwrap();
+    models::init_db(&db_client).await.unwrap();
+
+    let state: AppState = AppState::new(db_client, templates);
+    info!("done intializing appstate");
+    let router = init_router()
+        .await
+        .unwrap()
+        .nest_service("/static", ServeDir::new(static_dir))
+        .layer(init_session_layer())
+        .layer(Extension(state));
 
     for route in get_test_routes() {
         let req = Request::builder()
             .method(route.method)
-            .uri(route.uri)
+            .header("Content-Type", route.content_type)
+            .uri(&route.uri)
             .body(route.body)
             .unwrap();
         let response = router.clone().oneshot(req).await.unwrap();
-        assert!(response.status().is_success());
+        assert!(
+            response.status().is_success(),
+            "route: {}, response status: {}",
+            route.uri,
+            response.status()
+        );
     }
+    Ok(())
 }
