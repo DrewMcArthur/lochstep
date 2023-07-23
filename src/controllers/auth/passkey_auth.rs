@@ -22,15 +22,6 @@ pub struct PasskeyRegistrationOptions {
     registration_result: CreationChallengeResponse,
 }
 
-pub(crate) fn get_router() -> Router {
-    Router::new()
-        .route(
-            "/registration/options",
-            post(get_passkey_registration_options),
-        )
-        .route("/registration/create", post(create_passkey_registration))
-}
-
 pub async fn get_passkey_registration_options(
     Extension(app): Extension<AppState>,
     mut session: WritableSession,

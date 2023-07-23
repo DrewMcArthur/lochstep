@@ -1265,6 +1265,7 @@ dependencies = [
  "simple_logger",
  "tera",
  "tokio",
+ "tower",
  "tower-http",
  "url",
  "uuid",

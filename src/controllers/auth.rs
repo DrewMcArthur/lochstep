@@ -25,21 +25,8 @@ pub struct AuthState {
 
 #[derive(Serialize, Deserialize)]
 pub struct Login {
-    username: String,
-    password: String,
-}
-
-#[allow(clippy::let_and_return)]
-pub(crate) fn get_router() -> Router {
-    let router = Router::new()
-        .route("/password/register", get(create_password_registration))
-        .route("/password/login", get(login));
-
-    #[cfg(passkey)]
-    router.nest("/passkey", passkey_auth::get_router());
-
-    #[cfg(not(passkey))]
-    router
+    pub(crate) username: String,
+    pub(crate) password: String,
 }
 
 pub(crate) async fn create_password_registration(

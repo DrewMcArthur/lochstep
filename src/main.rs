@@ -1,4 +1,4 @@
-use axum::{response::ErrorResponse, routing::get, Extension, Router};
+use axum::{response::ErrorResponse, Extension, Router};
 use axum_sessions::{async_session::MemoryStore, SameSite, SessionLayer};
 use errors::Errors;
 use hyper::StatusCode;
@@ -6,89 +6,71 @@ use log::{error, info};
 use rand::prelude::*;
 use simple_logger::SimpleLogger;
 use state::AppState;
-use std::{
-    env,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 use tera::Tera;
 use tower_http::services::ServeDir;
 
-use crate::state::get_app_port;
+use crate::{
+    config::{Config, Stage},
+    state::get_app_port,
+};
 
 #[cfg(passkey)]
 use crate::state::init_webauthn;
 
+mod config;
 mod constants;
 mod controllers;
 mod errors;
 mod models;
+mod routes;
 mod state;
 mod views;
 
+#[cfg(test)]
+mod tests;
+
 type Error = Box<dyn std::error::Error>;
 
-// #[shuttle_runtime::main]
-// async fn init_shuttle(
-//     #[shuttle_secrets::Secrets] secrets: SecretStore,
-//     #[shuttle_turso::Turso(
-//         addr = "libsql://choice-shredder-drewmcarthur.turso.io",
-//         local_addr = "libsql://choice-shredder-drewmcarthur.turso.io",
-//         token = "{secrets.DB_TURSO_TOKEN}"
-//     )]
-//     turso: libsql_client::Client,
-//     #[shuttle_static_folder::StaticFolder(folder = "src/ui/")] ui_dir: PathBuf,
-// ) -> ShuttleAxum {
-//     Ok(init_router(turso, &ui_dir).await.unwrap().into())
-// }
-
 #[tokio::main]
-async fn main() {
-    dotenv::dotenv().ok();
-    init_logger().expect("error initializing logger");
+async fn main() -> Result<(), Error> {
+    let config: Config = Config::from_env();
+    init_logger(&config).expect("error initializing logger");
 
     let ui_dir = Path::new("src").join("ui");
     info!("ui dir exists? {}", ui_dir.exists());
 
-    let db_client = init_db_client()
+    let db_client = init_db_client(&config)
         .await
         .expect("error initializing db client");
 
-    let router = init_router(db_client, &ui_dir)
-        .await
-        .expect("error initializing router");
-
-    let port = get_app_port();
-    serve(router, port)
-        .await
-        .expect("error serving router to port");
-}
-
-async fn init_router(db_client: libsql_client::Client, ui_dir: &Path) -> Result<Router, Error> {
     info!("intializing appstate");
-    let templates: Tera = match init_templates(ui_dir) {
+    let templates: Tera = match init_templates(&ui_dir) {
         Ok(templates) => templates,
         Err(e) => return Err(e),
     };
     let static_dir: PathBuf = ui_dir.join("static");
 
-    models::init_db(&db_client).await?;
+    models::init_db(&db_client).await.unwrap();
 
     let state: AppState = AppState::new(db_client, templates);
     info!("done intializing appstate");
 
-    info!("intializing router");
-    let router = Router::new()
-        .route("/", get(controllers::index))
-        .nest("/auth", controllers::auth::get_router())
+    let router = routes::init_router()
+        .await
+        .expect("error initializing router")
         .nest_service("/static", ServeDir::new(static_dir))
-        .layer(init_session_layer())
+        .layer(init_session_layer(&config))
         .layer(Extension(state));
 
-    info!("done initializing router.");
-    Ok(router)
+    let port = get_app_port();
+    serve(router, port)
+        .await
+        .expect("error serving router to port");
+    Ok(())
 }
 
-fn init_session_layer() -> SessionLayer<MemoryStore> {
+fn init_session_layer(config: &Config) -> SessionLayer<MemoryStore> {
     info!("initializing session memorystore");
     let store = MemoryStore::new();
     let secret1 = thread_rng().gen::<[u8; 32]>(); // MUST be at least 64 bytes!
@@ -98,7 +80,7 @@ fn init_session_layer() -> SessionLayer<MemoryStore> {
     SessionLayer::new(store, &secret)
         .with_cookie_name("sid")
         .with_same_site_policy(SameSite::Lax)
-        .with_secure(true) // TODO: set this to true iff prod
+        .with_secure(config.stage == Stage::Prod)
 }
 
 fn init_templates(ui_dir: &Path) -> Result<Tera, Error> {
@@ -114,13 +96,12 @@ fn init_templates(ui_dir: &Path) -> Result<Tera, Error> {
     Ok(templates)
 }
 
-async fn init_db_client() -> Result<libsql_client::Client, Error> {
-    let db_url = "libsql://choice-shredder-drewmcarthur.turso.io";
-    let token = env::var("DB_TURSO_TOKEN").expect("error loading env.DB_TURSO_TOKEN");
-    let config = libsql_client::Config {
-        url: url::Url::parse(db_url).expect("error parsing turso db url"),
-        auth_token: Some(token),
-    };
+async fn init_db_client(config: &Config) -> Result<libsql_client::Client, Error> {
+    let db_url: &str = config.db_url.as_str();
+    let auth_token: Option<String> = config.db_token.clone();
+
+    let url = url::Url::parse(db_url).expect("error parsing turso db url");
+    let config = libsql_client::Config { url, auth_token };
 
     match libsql_client::Client::from_config(config).await {
         Ok(client) => Ok(client),
@@ -128,9 +109,9 @@ async fn init_db_client() -> Result<libsql_client::Client, Error> {
     }
 }
 
-fn init_logger() -> Result<(), log::SetLoggerError> {
+fn init_logger(config: &Config) -> Result<(), log::SetLoggerError> {
     SimpleLogger::new()
-        .with_level(log::LevelFilter::Debug)
+        .with_level(config.log_level.to_level_filter())
         .with_module_level("hyper", log::LevelFilter::Info)
         .with_module_level("h2", log::LevelFilter::Info)
         .with_module_level("rustls", log::LevelFilter::Info)
@@ -153,3 +134,17 @@ pub fn handle_error(err_msg: &str, e: Errors) -> ErrorResponse {
     error!("{}", err_msg);
     (StatusCode::INTERNAL_SERVER_ERROR, err_msg).into()
 }
+
+// #[shuttle_runtime::main]
+// async fn init_shuttle(
+//     #[shuttle_secrets::Secrets] secrets: SecretStore,
+//     #[shuttle_turso::Turso(
+//         addr = "libsql://choice-shredder-drewmcarthur.turso.io",
+//         local_addr = "libsql://choice-shredder-drewmcarthur.turso.io",
+//         token = "{secrets.DB_TURSO_TOKEN}"
+//     )]
+//     turso: libsql_client::Client,
+//     #[shuttle_static_folder::StaticFolder(folder = "src/ui/")] ui_dir: PathBuf,
+// ) -> ShuttleAxum {
+//     Ok(init_router(turso, &ui_dir).await.unwrap().into())
+// }

@@ -25,9 +25,10 @@ serde_json = "1.0.102"
 simple_logger = "4.2.0"
 tera = "1"
 tokio = {version = "1.29.1", features = ["macros", "rt-multi-thread"]}
+tower = "0.4.13"
 tower-http = {version = "0.4.1", features = ["fs"]}
 url = "2.4.0"
-uuid = { version = "1.4.0", features = ["serde", "v8", "v4"] }
+uuid = {version = "1.4.0", features = ["serde", "v8", "v4"]}
 webauthn-rs = {version = "0.4.8", features = ["danger-credential-internals", "danger-allow-state-serialisation"], optional = true}
 
 [dependencies.axum-login-libsql]
@@ -39,3 +40,6 @@ branch = "chore/dep-up"
 default-features = false
 features = ["bytes", "http", "reqwest", "reqwest_backend", "local_backend", "mapping_names_to_values_in_rows"]
 git = "https://github.com/Suyashtnt/libsql-client-rs"
+
+[dev-dependencies]
+tower = "0.4.13"
