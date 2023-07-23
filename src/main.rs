@@ -18,6 +18,9 @@ use crate::state::get_app_port;
 #[cfg(passkey)]
 use crate::state::init_webauthn;
 
+#[cfg(test)]
+mod tests;
+
 mod constants;
 mod controllers;
 mod errors;
