@@ -6,6 +6,7 @@
         if (secondsLeft <= 1) {
             console.log("redirecting now!")
             window.location.href = "/"
+        } else {
             countdownElement.innerHTML = --secondsLeft
         }
     }, 1000)

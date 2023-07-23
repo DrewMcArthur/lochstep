@@ -46,7 +46,7 @@ impl Config {
             stage: env::var("STAGE")
                 .expect("error loading env.STAGE")
                 .parse()
-                .expect("error parsing env.STAGE"),
+                .expect("error parsing env.STAGE (does it match one of crate::config::Stage?)"),
 
             log_level: env::var("LOG_LEVEL")
                 .unwrap_or(log::Level::Info.to_string())
