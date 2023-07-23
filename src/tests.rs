@@ -1,7 +1,6 @@
 use std::path::{Path, PathBuf};
 
 use axum::Extension;
-use dotenv::dotenv;
 use http::{Method, Request};
 use hyper::Body;
 use log::info;
@@ -11,7 +10,7 @@ use tower_http::services::ServeDir;
 
 use crate::{
     controllers::auth::Login, init_db_client, init_session_layer, init_templates, models,
-    routes::init_router, state::AppState, Error,
+    routes::init_router, state::AppState, Error, config::{Stage, Config},
 };
 
 struct TestRoute {
@@ -44,9 +43,18 @@ fn get_test_routes() -> Vec<TestRoute> {
     ]
 }
 
+fn test_config() -> Config {
+    Config {
+        db_url: ":memory:".to_string(),
+        db_token: None,
+        stage: Stage::Test,
+        log_level: log::Level::Debug,
+    }
+}
+
 #[tokio::test]
 async fn happy_path() -> Result<(), Error> {
-    dotenv().unwrap();
+    let config = test_config(); 
     let ui_dir = Path::new("src").join("ui");
 
     info!("intializing appstate");
@@ -56,7 +64,7 @@ async fn happy_path() -> Result<(), Error> {
     };
     let static_dir: PathBuf = ui_dir.join("static");
 
-    let db_client = init_db_client().await.unwrap();
+    let db_client = init_db_client(&config).await.unwrap();
     models::init_db(&db_client).await.unwrap();
 
     let state: AppState = AppState::new(db_client, templates);
@@ -65,7 +73,7 @@ async fn happy_path() -> Result<(), Error> {
         .await
         .unwrap()
         .nest_service("/static", ServeDir::new(static_dir))
-        .layer(init_session_layer())
+        .layer(init_session_layer(&config))
         .layer(Extension(state));
 
     for route in get_test_routes() {

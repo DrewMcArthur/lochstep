@@ -15,6 +15,7 @@ pub enum Errors {
     RenderingError(String, tera::Error),
     SessionError(serde_json::Error),
     UserAlreadyExists(String),
+    StageParseError,
     Default,
 }
 
