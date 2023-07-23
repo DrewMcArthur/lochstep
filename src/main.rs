@@ -25,9 +25,9 @@ mod constants;
 mod controllers;
 mod errors;
 mod models;
+mod routes;
 mod state;
 mod views;
-mod routes;
 
 type Error = Box<dyn std::error::Error>;
 
@@ -46,7 +46,7 @@ type Error = Box<dyn std::error::Error>;
 // }
 
 #[tokio::main]
-async fn main() -> Result<(), Error>{
+async fn main() -> Result<(), Error> {
     dotenv::dotenv().ok();
     init_logger().expect("error initializing logger");
 

@@ -1,7 +1,16 @@
-use axum::{Router, routing::{get, post}};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 use log::info;
 
-use crate::{Error, controllers::{self, auth::{create_password_registration, login}}};
+use crate::{
+    controllers::{
+        self,
+        auth::{create_password_registration, login},
+    },
+    Error,
+};
 
 pub async fn init_router() -> Result<Router, Error> {
     info!("intializing router");
@@ -14,8 +23,8 @@ pub async fn init_router() -> Result<Router, Error> {
 
 fn auth_router() -> Router {
     let router = Router::new()
-    .route("/password/register", post(create_password_registration))
-    .route("/password/login", post(login));
+        .route("/password/register", post(create_password_registration))
+        .route("/password/login", post(login));
 
     #[cfg(passkey)]
     router.nest("/passkey", passkey_auth::get_router());

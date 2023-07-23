@@ -9,7 +9,10 @@ use tera::Tera;
 use tower::ServiceExt;
 use tower_http::services::ServeDir;
 
-use crate::{controllers::auth::Login, init_db_client, routes::init_router, init_session_layer, init_templates, models, state::AppState, Error};
+use crate::{
+    controllers::auth::Login, init_db_client, init_session_layer, init_templates, models,
+    routes::init_router, state::AppState, Error,
+};
 
 struct TestRoute {
     method: Method,
@@ -42,7 +45,7 @@ fn get_test_routes() -> Vec<TestRoute> {
 }
 
 #[tokio::test]
-async fn happy_path() -> Result<(), Error>{
+async fn happy_path() -> Result<(), Error> {
     dotenv().unwrap();
     let ui_dir = Path::new("src").join("ui");
 
