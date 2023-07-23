@@ -9,8 +9,12 @@ use tower::ServiceExt;
 use tower_http::services::ServeDir;
 
 use crate::{
-    controllers::auth::Login, init_db_client, init_session_layer, init_templates, models,
-    routes::init_router, state::AppState, Error, config::{Stage, Config},
+    config::{Config, Stage},
+    controllers::auth::Login,
+    init_db_client, init_session_layer, init_templates, models,
+    routes::init_router,
+    state::AppState,
+    Error,
 };
 
 struct TestRoute {
@@ -54,7 +58,7 @@ fn test_config() -> Config {
 
 #[tokio::test]
 async fn happy_path() -> Result<(), Error> {
-    let config = test_config(); 
+    let config = test_config();
     let ui_dir = Path::new("src").join("ui");
 
     info!("intializing appstate");

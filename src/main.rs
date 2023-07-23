@@ -10,7 +10,10 @@ use std::path::{Path, PathBuf};
 use tera::Tera;
 use tower_http::services::ServeDir;
 
-use crate::{config::{Config, Stage}, state::get_app_port};
+use crate::{
+    config::{Config, Stage},
+    state::get_app_port,
+};
 
 #[cfg(passkey)]
 use crate::state::init_webauthn;
