@@ -21,6 +21,7 @@ pub async fn init_router() -> Result<Router, Error> {
     Ok(router)
 }
 
+#[allow(clippy::let_and_return)]
 fn auth_router() -> Router {
     let router = Router::new()
         .route("/password/register", post(create_password_registration))
