@@ -29,6 +29,7 @@ pub struct Login {
     password: String,
 }
 
+#[allow(clippy::let_and_return)]
 pub(crate) fn get_router() -> Router {
     let router = Router::new()
         .route("/password/register", get(create_password_registration))
