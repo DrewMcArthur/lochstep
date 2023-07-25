@@ -4,6 +4,8 @@ use std::fmt::Display;
 pub enum Errors {
     DbStoredSaltParsingError(argon2::password_hash::Error),
     DbStoredUuidParsingError(anyhow::Error),
+    DbStoredUuidWrongTypeError(),
+    DbStoredUsernameWrongTypeError(),
     UuidParsingError(uuid::Error),
     GetHashError(argon2::password_hash::Error),
     DbFetchError(anyhow::Error),

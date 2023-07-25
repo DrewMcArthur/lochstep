@@ -8,7 +8,7 @@ use hyper::Body;
 
 use crate::{
     constants::session_keys::AUTH_STATE, controllers::auth::AuthState, errors::Errors,
-    handle_error, state::AppState, views,
+    handle_error, models, state::AppState, views,
 };
 
 pub mod auth;
@@ -36,7 +36,14 @@ pub async fn index(
     log::debug!("got reg_state: {:?}", reg_state);
     match reg_state {
         Some(Err(err)) => Err(err),
-        Some(Ok(auth)) => Ok(views::homepage(app.templates, auth.username)),
+        Some(Ok(auth)) => homepage(app, auth.username).await,
         None => Ok(views::login(app.templates)),
+    }
+}
+
+async fn homepage(app: AppState, name: String) -> Result<Html<String>, ErrorResponse> {
+    match models::users::all_users(&app.db).await {
+        Ok(all_users) => Ok(views::homepage(app.templates, name, all_users)),
+        Err(e) => Err(handle_error("error getting all users", e)),
     }
 }
