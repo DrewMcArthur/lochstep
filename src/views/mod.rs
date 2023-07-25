@@ -4,15 +4,19 @@ use tera::{Context, Tera};
 
 use crate::{errors::Errors, models::users::User};
 
-pub fn homepage(templates: Tera, name: String, all_users: Vec<User>) -> Html<String> {
+pub fn homepage(
+    templates: Tera,
+    name: String,
+    all_users: Vec<User>,
+) -> Result<Html<String>, Errors> {
     let mut ctx = Context::new();
     ctx.insert("name", &name);
     ctx.insert("all_users", &all_users);
-    Html(
-        templates
-            .render("homepage.html", &ctx)
-            .expect("error rendering homepage"),
-    )
+
+    match templates.render("homepage.html", &ctx) {
+        Ok(html) => Ok(Html(html)),
+        Err(e) => Err(Errors::RenderingError("homepage".to_string(), e)),
+    }
 }
 
 pub fn login(templates: Tera) -> Html<String> {

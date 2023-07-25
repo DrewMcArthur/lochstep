@@ -50,6 +50,11 @@ fn get_test_requests() -> Vec<Request<Body>> {
                 .unwrap(),
             ))
             .unwrap(),
+        Request::builder()
+            .method(Method::GET)
+            .uri("/")
+            .body(Body::empty())
+            .unwrap(),
     ]
 }
 

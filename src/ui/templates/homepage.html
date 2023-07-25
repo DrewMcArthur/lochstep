@@ -9,8 +9,8 @@
     Welcome {{name}}, you're logged in!
 </p>
 <ul>
-    {% for user in users %}
-    <li>{{ user.name }}</li>
+    {% for user in all_users %}
+    <li>{{ user.username }}</li>
     {% endfor %}
 </ul>
 {% endblock content %}
