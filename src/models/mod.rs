@@ -20,6 +20,7 @@ static CREATE_KEYS_TABLE: &str = "CREATE TABLE IF NOT EXISTS keys (
         key TEXT
         );";
 
+// this array should not be changed, only added to
 static MIGRATIONS: [&str; 3] = [
     CREATE_USERS_TABLE,
     CREATE_KEYS_TABLE,
