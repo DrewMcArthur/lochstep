@@ -40,16 +40,16 @@ async fn main() -> Result<(), Error> {
     let ui_dir = Path::new("src").join("ui");
     info!("ui dir exists? {}", ui_dir.exists());
 
-    let db_client = init_db_client(&config)
-        .await
-        .expect("error initializing db client");
-
     info!("intializing appstate");
     let templates: Tera = match init_templates(&ui_dir) {
         Ok(templates) => templates,
         Err(e) => return Err(e),
     };
     let static_dir: PathBuf = ui_dir.join("static");
+
+    let db_client = init_db_client(&config)
+        .await
+        .expect("error initializing db client");
 
     models::init_db(&db_client).await.unwrap();
 
