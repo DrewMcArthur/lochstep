@@ -9,6 +9,7 @@ use crate::{
 };
 
 pub mod auth;
+pub mod proposals;
 
 // todo: figure out the generalized approach -
 //       should have a route that returns an ErrorResponse,

@@ -6,6 +6,7 @@ pub mod db;
 #[cfg(passkey)]
 pub mod keys;
 pub mod passwords;
+pub mod proposals;
 pub mod users;
 
 pub(crate) async fn init_db(client: &libsql_client::Client) -> Result<(), Error> {

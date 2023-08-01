@@ -7,14 +7,15 @@ use log::info;
 use crate::{
     controllers::auth::{create_password_registration, login},
     errors::Errors,
-    routes,
+    routes::{self, proposals},
 };
 
 pub async fn init() -> Result<Router, Errors> {
     info!("intializing router");
     let router = Router::new()
         .route("/", get(routes::root))
-        .nest("/auth", auth_router());
+        .nest("/auth", auth_router())
+        .nest("/proposals", proposals::router());
     info!("done initializing router.");
     Ok(router)
 }

@@ -8,6 +8,7 @@ use hyper::Body;
 
 use crate::{controllers, handle_error, state::AppState};
 
+mod proposals;
 pub mod router;
 
 pub async fn root(
