@@ -56,7 +56,7 @@ async fn main() -> Result<(), Error> {
     let state: AppState = AppState::new(db_client, templates);
     info!("done intializing appstate");
 
-    let router = routes::init_router()
+    let router = routes::router::init()
         .await
         .expect("error initializing router")
         .nest_service("/static", ServeDir::new(static_dir))

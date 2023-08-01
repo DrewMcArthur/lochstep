@@ -1,31 +1,19 @@
-use axum::{
-    response::{ErrorResponse, Html},
-    Extension,
-};
+use axum::response::Html;
 use axum_sessions::extractors::ReadableSession;
 use http::Request;
 use hyper::Body;
 
 use crate::{
-    constants::session_keys::AUTH_STATE, controllers::auth::AuthState, errors::Errors,
-    handle_error, models, state::AppState, views,
+    constants::session_keys::AUTH_STATE, controllers::auth::AuthState, errors::Errors, models,
+    state::AppState, views,
 };
 
 pub mod auth;
 
-pub async fn index(
-    Extension(app): Extension<AppState>,
-    session: ReadableSession,
-    req: Request<Body>,
-) -> Result<Html<String>, ErrorResponse> {
-    match get_index(app, session, req).await {
-        Ok(html) => Ok(html),
-        Err(e) => Err(handle_error("error rendering index", e)),
-    }
-}
-
-// todo: rename
-async fn get_index(
+// todo: figure out the generalized approach -
+//       should have a route that returns an ErrorResponse,
+//       and logic that returns Errors
+pub async fn get_index(
     app: AppState,
     session: ReadableSession,
     req: Request<Body>,

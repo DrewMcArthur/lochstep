@@ -13,8 +13,7 @@ use crate::{
     config::{Config, Stage},
     controllers::auth::Login,
     errors::Errors,
-    init_session_layer, init_templates, models,
-    routes::init_router,
+    init_session_layer, init_templates, models, routes,
     state::AppState,
     Error,
 };
@@ -88,7 +87,7 @@ async fn happy_path() -> Result<(), Error> {
 
     let state: AppState = AppState::new(db_client, templates);
     info!("done intializing appstate");
-    let router = init_router()
+    let router = routes::router::init()
         .await
         .unwrap()
         .nest_service("/static", ServeDir::new(static_dir))
