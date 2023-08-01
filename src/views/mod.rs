@@ -2,16 +2,21 @@ use axum::response::Html;
 use log::error;
 use tera::{Context, Tera};
 
-use crate::errors::Errors;
+use crate::{errors::Errors, models::users::User};
 
-pub fn homepage(templates: Tera, name: String) -> Html<String> {
+pub fn homepage(
+    templates: Tera,
+    name: String,
+    all_users: Vec<User>,
+) -> Result<Html<String>, Errors> {
     let mut ctx = Context::new();
     ctx.insert("name", &name);
-    Html(
-        templates
-            .render("homepage.html", &ctx)
-            .expect("error rendering homepage"),
-    )
+    ctx.insert("all_users", &all_users);
+
+    match templates.render("homepage.html", &ctx) {
+        Ok(html) => Ok(Html(html)),
+        Err(e) => Err(Errors::RenderingError("homepage".to_string(), e)),
+    }
 }
 
 pub fn login(templates: Tera) -> Html<String> {

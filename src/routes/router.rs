@@ -5,17 +5,15 @@ use axum::{
 use log::info;
 
 use crate::{
-    controllers::{
-        self,
-        auth::{create_password_registration, login},
-    },
-    Error,
+    controllers::auth::{create_password_registration, login},
+    errors::Errors,
+    routes,
 };
 
-pub async fn init_router() -> Result<Router, Error> {
+pub async fn init() -> Result<Router, Errors> {
     info!("intializing router");
     let router = Router::new()
-        .route("/", get(controllers::index))
+        .route("/", get(routes::root))
         .nest("/auth", auth_router());
     info!("done initializing router.");
     Ok(router)

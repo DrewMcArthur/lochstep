@@ -8,4 +8,9 @@
 <p class="important">
     Welcome {{name}}, you're logged in!
 </p>
+<ul>
+    {% for user in all_users %}
+    <li>{{ user.username }}</li>
+    {% endfor %}
+</ul>
 {% endblock content %}
