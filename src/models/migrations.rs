@@ -45,7 +45,7 @@ async fn get_latest(client: &libsql_client::Client) -> Result<usize, Errors> {
                 .map(|row: &libsql_client::Row| row.try_get(0).unwrap())
                 .unwrap_or(0)
         })
-        .map_err(|e| Errors::DbFetchLatestMigrationError(e))
+        .map_err(Errors::DbFetchLatestMigrationError)
 }
 
 async fn exec_migration(client: &libsql_client::Client, query: &str) -> Result<(), Errors> {
@@ -64,7 +64,7 @@ async fn add(client: &libsql_client::Client, id: usize, query: &str) -> Result<(
         .execute(stmt)
         .await
         .map(|_| ())
-        .map_err(|e| Errors::DbInsertError(e))
+        .map_err(Errors::DbInsertError)
 }
 
 #[cfg(test)]
