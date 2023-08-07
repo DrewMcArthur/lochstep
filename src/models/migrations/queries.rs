@@ -21,7 +21,7 @@ pub(super) static CREATE_KEYS_TABLE: &str = "CREATE TABLE IF NOT EXISTS keys (
         id INT PRIMARY KEY,
         userid TEXT,
         key TEXT
-        );";
+    );";
 
 pub(super) static CREATE_PROPOSALS_TABLE: &str = "CREATE TABLE IF NOT EXISTS proposals (
         id INT PRIMARY KEY,
