@@ -15,7 +15,7 @@ pub(super) static CREATE_USERS_TABLE: &str = "CREATE TABLE IF NOT EXISTS users (
         username TEXT UNIQUE,
         hash TEXT,
         salt TEXT
-        );";
+    );";
 
 pub(super) static CREATE_KEYS_TABLE: &str = "CREATE TABLE IF NOT EXISTS keys (
         id INT PRIMARY KEY,
