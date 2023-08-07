@@ -6,6 +6,7 @@ pub enum Errors {
     DbStoredUuidParsingError(anyhow::Error),
     DbStoredUuidWrongTypeError(),
     DbStoredUsernameWrongTypeError(),
+    DbFetchLatestMigrationError(anyhow::Error),
     UuidParsingError(uuid::Error),
     GetHashError(argon2::password_hash::Error),
     DbFetchError(anyhow::Error),
