@@ -72,7 +72,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_init_db() {
+    async fn test_migrate_db() {
         let client = libsql_client::Client::in_memory().unwrap();
         let mut migrations = MIGRATIONS.to_vec();
         assert!(get_latest(&client).await.is_err());
