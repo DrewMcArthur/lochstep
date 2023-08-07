@@ -14,7 +14,7 @@ pub(crate) async fn init_db(client: &libsql_client::Client) -> Result<(), Error>
 
     migrations::migrate_db(client, &migrations::MIGRATIONS.to_vec())
         .await
-        .unwrap();
+        .expect("error migrating database");
 
     info!("done initializing db");
     Ok(())
