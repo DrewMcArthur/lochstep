@@ -1,6 +1,6 @@
 use log::info;
 
-use crate::{models, Error};
+use crate::Error;
 
 pub mod db;
 #[cfg(passkey)]
@@ -8,6 +8,9 @@ pub mod keys;
 mod migrations;
 pub mod passwords;
 pub mod users;
+
+#[cfg(test)]
+mod test;
 
 static CREATE_USERS_TABLE: &str = "CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
@@ -42,20 +45,10 @@ static MIGRATIONS: [&str; 4] = [
 pub(crate) async fn init_db(client: &libsql_client::Client) -> Result<(), Error> {
     info!("initializing db");
 
-    let latest_migration: usize = models::migrations::get_latest(client).await.unwrap_or(0);
-
-    for (i, query) in MIGRATIONS.iter().enumerate() {
-        if i > latest_migration {
-            client
-                .execute(query)
-                .await
-                .unwrap_or_else(|e| panic!("error initializing db on query {i}: {e}"));
-        }
-    }
-
-    models::migrations::set_latest(client, MIGRATIONS.len())
+    migrations::migrate_db(client, &MIGRATIONS.to_vec())
         .await
-        .expect("error setting latest migration");
+        .unwrap();
+
     info!("done initializing db");
     Ok(())
 }
