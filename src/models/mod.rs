@@ -9,9 +9,6 @@ mod migrations;
 pub mod passwords;
 pub mod users;
 
-#[cfg(test)]
-mod test;
-
 pub(crate) async fn init_db(client: &libsql_client::Client) -> Result<(), Error> {
     info!("initializing db");
 
