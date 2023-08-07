@@ -1,8 +1,43 @@
+use axum_sessions::async_session::chrono;
 use libsql_client::{args, Statement};
 
 use crate::errors::Errors;
 
 static GET_LATEST_MIGRATION: &str = "SELECT id FROM migrations ORDER BY id DESC LIMIT 1;";
+static ADD_MIGRATION: &str = "INSERT INTO migrations (id, date, query) VALUES (?, ?, ?);";
+
+static CREATE_MIGRATIONS_TABLE: &str = "CREATE TABLE IF NOT EXISTS migrations (
+        id INT PRIMARY KEY,
+        date TEXT,
+        query TEXT
+    );";
+static CREATE_USERS_TABLE: &str = "CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        username TEXT UNIQUE,
+        hash TEXT,
+        salt TEXT
+        );";
+static CREATE_KEYS_TABLE: &str = "CREATE TABLE IF NOT EXISTS keys (
+        id INT PRIMARY KEY,
+        userid TEXT,
+        key TEXT
+        );";
+static CREATE_PROPOSALS_TABLE: &str = "CREATE TABLE IF NOT EXISTS proposals (
+        id INT PRIMARY KEY,
+        title TEXT,
+        description TEXT,
+        authorId TEXT,
+        createdAt TEXT,
+        updatedAt TEXT
+    );";
+
+// this array should only ever be added to; never changed
+pub static MIGRATIONS: [&str; 4] = [
+    CREATE_MIGRATIONS_TABLE,
+    CREATE_USERS_TABLE,
+    CREATE_KEYS_TABLE,
+    CREATE_PROPOSALS_TABLE,
+];
 
 pub async fn migrate_db(
     client: &libsql_client::Client,
@@ -17,15 +52,13 @@ pub async fn migrate_db(
                 .execute(query)
                 .await
                 .unwrap_or_else(|e| panic!("error initializing db on query {i}: {e}"));
+
+            add(client, i + 1, query)
+                .await
+                .expect("error updating migrations table");
+
             migrations_executed += 1;
         }
-    }
-
-    // TODO: should condition instead be migrations_executed > 0?
-    if migrations.len() > latest_migration {
-        set_latest(client, migrations.len())
-            .await
-            .expect("error setting latest migration");
     }
 
     Ok(migrations_executed)
@@ -44,8 +77,9 @@ async fn get_latest(client: &libsql_client::Client) -> Result<usize, Errors> {
         .map_err(|e| Errors::DbFetchLatestMigrationError(e))
 }
 
-async fn set_latest(client: &libsql_client::Client, id: usize) -> Result<(), Errors> {
-    let stmt = Statement::with_args("INSERT INTO migrations (id) VALUES (?)", args![id]);
+async fn add(client: &libsql_client::Client, id: usize, query: &str) -> Result<(), Errors> {
+    let now = chrono::offset::Utc::now().to_rfc3339();
+    let stmt = Statement::with_args(ADD_MIGRATION, args![id, now, query]);
     client
         .execute(stmt)
         .await
@@ -55,7 +89,6 @@ async fn set_latest(client: &libsql_client::Client, id: usize) -> Result<(), Err
 
 #[cfg(test)]
 mod tests {
-    use super::super::MIGRATIONS;
     use super::*;
 
     #[tokio::test]
